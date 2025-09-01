@@ -1,6 +1,6 @@
 # GitHub MCPをグローバル設定に追加する方法
 
-このドキュメントでは、GitHub MCPをグローバル設定に追加する方法を解説します。キー情報は環境変数の`GH_TOKEN`から取得します。
+このドキュメントでは、GitHub MCPをグローバル設定に追加する方法を解説します。Git Bashを使用して実行します。
 
 ## 前提条件
 
@@ -9,66 +9,44 @@
 
 ## 手順
 
-1. ターミナル（コマンドプロンプトまたはPowerShell）を開きます
+1. エクスプローラーでC:\ClaudeCodeフォルダ（または任意の作業ディレクトリ）を開きます
 
-2. 以下のコマンドを実行して、環境変数からGH_TOKENを取得します:
+2. フォルダ内で右クリックし、「Open Git bash here」を選択してGit Bashを開きます
 
-   ```bash
-   echo %GH_TOKEN%
-   ```
-
-   PowerShellの場合:
-
-   ```powershell
-   echo $env:GH_TOKEN
-   ```
-
-3. Claude Codeの設定ファイルを開きます:
+3. 以下のコマンドを実行して、環境変数から設定ファイルを生成します:
 
    ```bash
-   claude settings edit
+   envsubst < add_mcp_windows.json > add_token_github_mcp.json
    ```
 
-4. 設定ファイルに以下の内容を追加します:
-
-   ```json
-   {
-     "mcps": {
-       "github": {
-         "name": "github",
-         "provider": "github",
-         "auth": {
-           "token": "${GH_TOKEN}"
-         }
-       }
-     }
-   }
-   ```
-
-5. 設定ファイルを保存して閉じます
-
-6. Claude Codeを再起動して設定を適用します:
+4. 生成されたJSONファイルを使用して、GitHub MCPを追加します:
 
    ```bash
-   claude restart
+   claude mcp add-json github-org -s user "$(cat add_token_github_mcp.json)" --verbose
    ```
 
-7. 設定が正しく行われたか確認するには:
-
-   ```bash
-   claude settings list
+   正常に追加されると、以下のメッセージが表示されます:
+   ```
+   Added stdio MCP server github-org to user config
    ```
 
-   または
+5. 設定が正しく行われたか確認するには:
 
    ```bash
-   claude settings get mcps
+   claude mcp list
+   ```
+
+   正常に設定されている場合、以下のような結果が表示されます:
+   ```
+   Checking MCP server health...
+
+   github-org: cmd /c npx -y @modelcontextprotocol/server-github - ✓ Connected
    ```
 
 これで、環境変数`GH_TOKEN`の値を使用してGitHub MCPがグローバル設定に追加されました。
 
 ## トラブルシューティング
 
-- **設定が反映されない場合**: ターミナルを再起動して、環境変数が正しく読み込まれていることを確認してください
+- **コマンドが見つからないエラー**: Git BashにenvsubstコマンドがインストールされているかGit for Windowsのバージョンを確認してください
 - **認証エラーが発生する場合**: GH_TOKENの有効期限や権限を確認してください
-- **設定ファイルの構文エラー**: JSON形式が正しいことを確認してください
+- **接続エラーが発生する場合**: インターネット接続を確認し、npmパッケージがインストールできる環境であることを確認してください
