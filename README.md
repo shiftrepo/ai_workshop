@@ -23,6 +23,7 @@ AI利用促進共通リポジトリ
 | 5. GitHub CLIのインストール | コマンドラインからGitHubを操作するツール | GitHubの操作効率化 | ★☆☆ | [GitHubCLIのインストール.md](doc/GitHubCLIのインストール.md) |
 | 6. Claude Codeのインストールと設定 | AIアシスタントツールの設定 | コーディング支援AIの導入 | ★★☆ | [ClaudeCodeのインストールと設定.md](doc/ClaudeCodeのインストールと設定.md) |
 | 7. リポジトリ作成とClaudeでのアクセス | GitHubリポジトリ作成とアクセス確認 | 実際の開発環境準備 | ★★☆ | [Githubにリポジトリを作成してClaudeCodeでアクセス.md](doc/Githubにリポジトリを作成してClaudeCodeでアクセス.md) |
+| 8. MCPサーバ導入 | mcpサーバ導入 | 実際の開発環境準備 | ★★☆ | [mcpサーバ導入.md](doc/mcpサーバ導入.md) |
 
 ## 手順概要
 
