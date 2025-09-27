@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>和ハーブストア | 日本の自然の恵み</title>
+  <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- ヘッダー -->
+  <header class="bg-success text-white py-3">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-md-4">
+          <h1 class="m-0">和ハーブストア</h1>
+        </div>
+        <div class="col-md-5">
+          <form class="d-flex">
+            <input class="form-control me-2" type="search" placeholder="ハーブを検索..." aria-label="検索">
+            <button class="btn btn-outline-light" type="submit">検索</button>
+          </form>
+        </div>
+        <div class="col-md-3 text-end">
+          <button class="btn btn-outline-light me-2">ログイン</button>
+          <button class="btn btn-light">カート</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ナビゲーション -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item"><a class="nav-link active" href="#">ホーム</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">ハーブ一覧</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">効能別</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">セット商品</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">季節のおすすめ</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">お問い合わせ</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- メインビジュアル -->
+  <div class="hero-section py-5 bg-light">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6">
+          <h2 class="display-4">日本の自然が育んだ<br>和のハーブの恵み</h2>
+          <p class="lead">厳選された国産ハーブをお届けします。心と体を整える自然の力を感じてください。</p>
+          <a href="#featured" class="btn btn-success btn-lg">おすすめ商品を見る</a>
+        </div>
+        <div class="col-md-6">
+          <div class="main-image-placeholder bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 300px;">
+            <p class="h3">メイン画像表示エリア</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 特集ハーブ商品 -->
+  <section id="featured" class="py-5">
+    <div class="container">
+      <h2 class="text-center mb-4">今月の特集ハーブ</h2>
+      <div class="row">
+        <% const featuredHerbs = [
+          { name: '国産よもぎ', price: 980, description: '自然の恵みたっぷりの国産よもぎです。お茶やお風呂に。' },
+          { name: '奥会津どくだみ', price: 1200, description: '奥会津の清らかな環境で育ったどくだみ。デトックスに。' },
+          { name: '熊野くろもじ', price: 1500, description: '熊野の森で育ったくろもじ。リラックス効果があります。' },
+          { name: '屋久島くまざさ', price: 1300, description: '屋久島の自然が育んだくまざさ。健康維持にお役立てください。' }
+        ] %>
+
+        <% featuredHerbs.forEach(herb => { %>
+          <div class="col-md-3 mb-4">
+            <div class="card h-100">
+              <div class="bg-light text-center p-3" style="height: 180px;">
+                <span class="text-muted">[商品画像]</span>
+              </div>
+              <div class="card-body">
+                <h5 class="card-title"><%= herb.name %></h5>
+                <p class="card-text text-muted"><%= herb.description %></p>
+                <p class="card-text text-end fw-bold">¥<%= herb.price %> <small class="text-muted">税込</small></p>
+                <button class="btn btn-sm btn-outline-success w-100">カートに追加</button>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <!-- ハーブカテゴリー -->
+  <section class="py-5 bg-light">
+    <div class="container">
+      <h2 class="text-center mb-4">ハーブカテゴリー</h2>
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="card h-100">
+            <div class="card-body text-center">
+              <h3 class="h4 card-title">癒しのハーブ</h3>
+              <p class="card-text">心を落ち着かせ、リラックス効果のあるハーブです。</p>
+              <a href="#" class="btn btn-outline-success">詳しく見る</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card h-100">
+            <div class="card-body text-center">
+              <h3 class="h4 card-title">美容のハーブ</h3>
+              <p class="card-text">肌や髪の健康をサポートするハーブです。</p>
+              <a href="#" class="btn btn-outline-success">詳しく見る</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card h-100">
+            <div class="card-body text-center">
+              <h3 class="h4 card-title">健康のハーブ</h3>
+              <p class="card-text">身体の調子を整え、健康維持をサポートするハーブです。</p>
+              <a href="#" class="btn btn-outline-success">詳しく見る</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- お知らせ・コンテンツ -->
+  <section class="py-5">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6 mb-4">
+          <h3>ハーブの効能</h3>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item">よもぎ: 血行促進、冷え性改善</li>
+            <li class="list-group-item">どくだみ: デトックス効果、肌トラブルに</li>
+            <li class="list-group-item">くまざさ: 抗酸化作用、免疫力向上</li>
+            <li class="list-group-item">くろもじ: リラックス効果、消臭作用</li>
+            <li class="list-group-item">はぶ茶: 利尿作用、むくみ改善</li>
+          </ul>
+        </div>
+        <div class="col-md-6 mb-4">
+          <h3>最新のお知らせ</h3>
+          <div class="list-group">
+            <a href="#" class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">秋の新商品入荷のお知らせ</h5>
+                <small>3日前</small>
+              </div>
+              <p class="mb-1">秋に収穫した新鮮なハーブが入荷しました。</p>
+            </a>
+            <a href="#" class="list-group-item list-group-item-action">
+              <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">ハーブティーワークショップ開催</h5>
+                <small>1週間前</small>
+              </div>
+              <p class="mb-1">10月のワークショップ日程が決定しました。</p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- フッター -->
+  <footer class="bg-dark text-white py-4">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <h5>和ハーブストア</h5>
+          <p class="small">日本の伝統的なハーブを厳選してお届けするオンラインショップです。</p>
+        </div>
+        <div class="col-md-2 mb-3">
+          <h5>ショップ</h5>
+          <ul class="list-unstyled">
+            <li><a href="#" class="text-white-50">商品一覧</a></li>
+            <li><a href="#" class="text-white-50">新着商品</a></li>
+            <li><a href="#" class="text-white-50">おすすめ</a></li>
+            <li><a href="#" class="text-white-50">セール</a></li>
+          </ul>
+        </div>
+        <div class="col-md-2 mb-3">
+          <h5>情報</h5>
+          <ul class="list-unstyled">
+            <li><a href="#" class="text-white-50">会社概要</a></li>
+            <li><a href="#" class="text-white-50">ご利用ガイド</a></li>
+            <li><a href="#" class="text-white-50">お問い合わせ</a></li>
+            <li><a href="#" class="text-white-50">プライバシーポリシー</a></li>
+          </ul>
+        </div>
+        <div class="col-md-4">
+          <h5>ニュースレター登録</h5>
+          <p class="small">最新情報やお得な情報をお届けします</p>
+          <div class="input-group mb-3">
+            <input type="email" class="form-control" placeholder="メールアドレス">
+            <button class="btn btn-success" type="button">登録</button>
+          </div>
+        </div>
+      </div>
+      <hr>
+      <div class="text-center">
+        <p class="small m-0">&copy; 2025 和ハーブストア All Rights Reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

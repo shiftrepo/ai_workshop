@@ -1,0 +1,56 @@
+/* 全体の設定 */
+body {
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* ヘッダー */
+header h1 {
+  font-weight: 700;
+  font-size: 1.8rem;
+}
+
+/* メインビジュアル */
+.hero-section {
+  background-color: #f8f9fa;
+  padding: 3rem 0;
+}
+
+.hero-section h2 {
+  color: #2e7d32;
+  font-weight: 700;
+}
+
+/* 商品カード */
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* フッター */
+footer a {
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 768px) {
+  .hero-section {
+    text-align: center;
+    padding: 2rem 0;
+  }
+
+  .hero-section .btn {
+    margin-bottom: 2rem;
+  }
+}
