@@ -1,0 +1,22 @@
+{
+  "name": "excel-mcp-server-folder-comparison",
+  "version": "1.0.0",
+  "description": "Compare folders using Excel MCP Server",
+  "main": "mcp_folder_compare.js",
+  "scripts": {
+    "compare": "node compare_folders.js",
+    "mcp-compare": "node mcp_folder_compare.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "folder",
+    "comparison",
+    "excel",
+    "mcp"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "exceljs": "^4.3.0"
+  }
+}
