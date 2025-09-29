@@ -54,8 +54,11 @@ python
 以下のコマンドを**Git Bash**で実行します。
 
 ```bash
+# 仮想環境を作成する。仮想といってもライブラリの切り替え用環境です
+python -m venv venv
+
 # 作成した仮想環境を有効化する
-.\venv\Scripts\activate
+source venv/Scripts/activate
 
 # 必要なパッケージをインストールする
 pip install pandas fastapi mcp uv
@@ -89,7 +92,7 @@ claude mcp list
 ```
 
   * `claude mcp add-json ...`：`excel-server` という名前で、`uvx` コマンドで実行される `excel-mcp-server` をClaudeに認識させます。`stdio` は通信方式を指定しています。
-  * `claude mcp list`：`excel-server` がリストに表示されれば成功です。
+  * `claude mcp list`：`excel-server` がリストに表示され`Connected`であれば成功です。
 
 <br>
 
@@ -128,7 +131,7 @@ claude mcp list
 
 #### コマンド解説：`source` と `--dangerously-skip-permissions`
 
-  * `source`：Git Bashでスクリプトファイルを実行するためのコマンドです。
+  * `source`：Git Bashでスクリプトファイルを実行するためのコマンドです。作成したvenvのフォルダは適宜読み替えてください。excelMCPserverを使わない場合は、不要です。
   * `--dangerously-skip-permissions`：このオプションは、セキュリティ確認をスキップして、AIがローカルPC上のファイルやプログラムにアクセスすることを許可します。**注意して使用してください。**
   * `-p "<プロンプト>"`：AIに実行させたい指示（プロンプト）を指定します。
 
