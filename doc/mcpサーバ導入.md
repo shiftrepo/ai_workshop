@@ -27,12 +27,18 @@
 以下のコマンドを**PowerShell**で実行します。
 
 ```powershell
-PS C:\ClaudeCode> mkdir MCPs
-PS C:\ClaudeCode> cd .\MCPs\
+mkdir MCPs
+cd .\MCPs\
 ```
 
   * `mkdir MCPs`：`C:\ClaudeCode` フォルダ内に `MCPs` という新しいフォルダを作成します。
   * `cd .\MCPs\`：作成した `MCPs` フォルダに移動します。以降の作業はこのフォルダ内で行います。
+
+ちょっとイレギュラーですが、pythonをインストールします。powershellにてpythonとタイプして実行してください。インストールされている場合は、pythonが動きますが、インストールされていない場合は、MSのStoreが起動して、Pythonをインストールする画面が立ち上がります。指示に従ってインストールしてください。何か選択肢が出てもデフォルトでいいです。
+
+```powershell
+python
+```
 
 <br>
 
