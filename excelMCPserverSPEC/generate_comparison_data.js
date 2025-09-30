@@ -162,6 +162,89 @@ const dirsOnlyInDir1 = dirs1.filter(d => !dirs2Set.has(d));
 const dirsOnlyInDir2 = dirs2.filter(d => !dirs1Set.has(d));
 const commonDirs = dirs1.filter(d => dirs2Set.has(d));
 
+// パーミッション情報の計算
+const permissionsDetails = [];
+let ownerDiffCount = 0;
+let groupDiffCount = 0;
+let otherDiffCount = 0;
+const ownerDiffFiles = [];
+const groupDiffFiles = [];
+const otherDiffFiles = [];
+
+// 共通ファイルのパーミッション詳細情報を生成
+commonFiles.forEach(file => {
+  const filePath1 = path.join(folder1, file);
+  const filePath2 = path.join(folder2, file);
+
+  const info1 = getFileInfo(filePath1);
+  const info2 = getFileInfo(filePath2);
+
+  if (info1 && info2) {
+    // 所有者権限の比較 (0o700 / 448)
+    const owner1 = (info1.mode & 0o700) >> 6;
+    const owner2 = (info2.mode & 0o700) >> 6;
+    const ownerDiff = owner1 !== owner2;
+
+    // グループ権限の比較 (0o070 / 56)
+    const group1 = (info1.mode & 0o070) >> 3;
+    const group2 = (info2.mode & 0o070) >> 3;
+    const groupDiff = group1 !== group2;
+
+    // その他権限の比較 (0o007 / 7)
+    const other1 = (info1.mode & 0o007);
+    const other2 = (info2.mode & 0o007);
+    const otherDiff = other1 !== other2;
+
+    // 差分カウンター更新
+    if (ownerDiff) {
+      ownerDiffCount++;
+      ownerDiffFiles.push(file);
+    }
+    if (groupDiff) {
+      groupDiffCount++;
+      groupDiffFiles.push(file);
+    }
+    if (otherDiff) {
+      otherDiffCount++;
+      otherDiffFiles.push(file);
+    }
+
+    // 詳細情報格納
+    if (ownerDiff || groupDiff || otherDiff) {
+      permissionsDetails.push({
+        file: file,
+        numeric_mode: {
+          folder1: info1.mode,
+          folder2: info2.mode
+        },
+        owner: {
+          folder1: '', // lsコマンドから取得する場合はここを設定
+          folder2: ''
+        },
+        group: {
+          folder1: '', // lsコマンドから取得する場合はここを設定
+          folder2: ''
+        },
+        owner_permissions: {
+          folder1: owner1,
+          folder2: owner2,
+          different: ownerDiff
+        },
+        group_permissions: {
+          folder1: group1,
+          folder2: group2,
+          different: groupDiff
+        },
+        other_permissions: {
+          folder1: other1,
+          folder2: other2,
+          different: otherDiff
+        }
+      });
+    }
+  }
+});
+
 // 比較データ作成
 const comparisonData = {
   comparison_info: {
@@ -185,6 +268,15 @@ const comparisonData = {
     only_in_dir1: dirsOnlyInDir1,
     only_in_dir2: dirsOnlyInDir2,
     common_directories: commonDirs
+  },
+  permissions: {
+    owner_diff_count: ownerDiffCount,
+    group_diff_count: groupDiffCount,
+    other_diff_count: otherDiffCount,
+    owner_diff_files: ownerDiffFiles,
+    group_diff_files: groupDiffFiles,
+    other_diff_files: otherDiffFiles,
+    permissions_details: permissionsDetails
   }
 };
 
