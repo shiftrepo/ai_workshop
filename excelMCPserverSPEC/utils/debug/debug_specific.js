@@ -2,12 +2,17 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const jsonFilePath = path.join(__dirname, 'output', 'comparison_data.json');
+// パスの調整: 現在の実行パスに関係なく正しくファイルを見つけられるようにする
+const rootDir = path.resolve(__dirname, '../..');
+const jsonFilePath = path.join(rootDir, 'output', 'comparison_data.json');
 
 // 問題の特定のセクションをシミュレート
 function simulateSection() {
   try {
     console.log('Loading comparison data...');
+    console.log(`JSON data path: ${jsonFilePath}`);
+    console.log(`Current directory: ${process.cwd()}`);
+
     const jsonData = fs.readFileSync(jsonFilePath, 'utf8');
     const comparisonData = JSON.parse(jsonData);
 
