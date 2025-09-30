@@ -15,33 +15,63 @@ MCPは、AIアシスタントが外部データソースやツールと安全に
 
 ```
 excelMCPserverSPEC/
-├── README.md                # このファイル（プロジェクトドキュメント）
-├── prompt.txt              # 作業指示書
-├── CLAUDE.md               # Claude Code 用の説明ファイル
-├── compare_folders.sh      # フォルダ比較シェルスクリプト
-├── generate_report.js      # レポート生成Node.jsスクリプト
-├── config.json             # 設定ファイル
-├── package.json            # Node.js依存関係定義
-├── test_folder1/           # テスト用サンプルデータセット1
-│   ├── date_file.txt       # 日付ファイル
-│   ├── executable.sh       # 実行可能スクリプト
-│   ├── only_in_1.txt      # フォルダ1固有ファイル
-│   ├── readonly.txt        # 読み取り専用ファイル
-│   ├── regular.txt         # 通常テキストファイル
-│   ├── same_file.txt       # 共通ファイル
-│   ├── subdir/            # サブディレクトリ
-│   │   └── subdir_file.txt # サブディレクトリ内ファイル
-│   └── test_file1.txt     # テストファイル1
-└── test_folder2/           # テスト用サンプルデータセット2
-    ├── date_file.txt       # 日付ファイル
-    ├── executable.sh       # 実行可能スクリプト
-    ├── only_in_2.txt      # フォルダ2固有ファイル
-    ├── readonly.txt        # 読み取り専用ファイル（内容が異なる）
-    ├── regular.txt         # 通常テキストファイル
-    ├── same_file.txt       # 共通ファイル
-    ├── subdir/            # サブディレクトリ
-    │   └── subdir_file.txt # サブディレクトリ内ファイル
-    └── test_file1.txt     # テストファイル1
+├── README.md                 # このファイル（プロジェクトドキュメント）
+├── prompt.txt                # 作業指示書
+├── CLAUDE.md                 # Claude Code 用の説明ファイル
+├── config.json               # 設定ファイル
+├── generate_comparison_data.js # フォルダ比較データ生成Node.jsスクリプト
+├── generate_report.js        # レポート生成Node.jsスクリプト
+├── simple_compare.sh         # シンプル比較用シェルスクリプト
+├── debug_report.js           # 比較データ構造検証用デバッグスクリプト
+├── debug_specific.js         # レポート生成エラー調査用デバッグスクリプト
+├── package.json              # Node.js依存関係定義
+├── package-lock.json         # Node.js依存関係の正確なバージョン定義
+├── logs/                     # ログ出力ディレクトリ
+├── output/                   # 出力ファイル格納ディレクトリ
+│   ├── comparison_data.json  # 比較結果のJSONデータ
+│   ├── comparison_result.xlsx # 生成されるExcelレポート
+│   └── comparison_report.pdf # 生成されるPDFレポート
+├── test_folder1/             # テスト用サンプルデータセット1
+│   ├── binary_data.bin       # バイナリデータファイル
+│   ├── date_file.txt         # 日付ファイル
+│   ├── executable.sh         # 実行可能スクリプト
+│   ├── matched_pattern_1.txt # パターンマッチング用ファイル1
+│   ├── matched_pattern_2.txt # パターンマッチング用ファイル2
+│   ├── matched_pattern_3.txt # パターンマッチング用ファイル3
+│   ├── only_in_1.txt         # フォルダ1固有ファイル
+│   ├── readonly.txt          # 読み取り専用ファイル
+│   ├── regular.txt           # 通常テキストファイル
+│   ├── same_file.txt         # 共通ファイル
+│   ├── symlink.txt           # シンボリックリンクファイル
+│   ├── unique_to_folder1.txt # フォルダ1固有ファイル2
+│   ├── nested/               # 多階層ディレクトリ
+│   │   └── deep/
+│   │       └── structure/
+│   │           └── deep_file.txt # 深い階層のファイル
+│   ├── subdir/               # サブディレクトリ
+│   │   ├── file.txt          # サブディレクトリ内ファイル
+│   │   └── subdir_file.txt   # サブディレクトリ内ファイル2
+│   └── test_file1.txt        # テストファイル1
+└── test_folder2/             # テスト用サンプルデータセット2
+    ├── binary_data.bin       # バイナリデータファイル
+    ├── date_file.txt         # 日付ファイル
+    ├── executable.sh         # 実行可能スクリプト
+    ├── matched_pattern_1.txt # パターンマッチング用ファイル1
+    ├── matched_pattern_2.txt # パターンマッチング用ファイル2
+    ├── matched_pattern_3.txt # パターンマッチング用ファイル3
+    ├── only_in_2.txt         # フォルダ2固有ファイル
+    ├── readonly.txt          # 読み取り専用ファイル（内容が異なる）
+    ├── regular.txt           # 通常テキストファイル
+    ├── same_file.txt         # 共通ファイル
+    ├── unique_to_folder2.txt # フォルダ2固有ファイル2
+    ├── nested/               # 多階層ディレクトリ
+    │   └── deep/
+    │       └── structure/
+    │           └── deep_file.txt # 深い階層のファイル（内容が異なる）
+    ├── subdir/               # サブディレクトリ
+    │   ├── file.txt          # サブディレクトリ内ファイル
+    │   └── subdir_file.txt   # サブディレクトリ内ファイル2（内容が異なる）
+    └── test_file1.txt        # テストファイル1（内容が異なる）
 ```
 
 ## システム構成
@@ -58,53 +88,110 @@ excelMCPserverSPEC/
 
 ## 実行方法
 
-### 基本的な利用方法
+### 詳細な使用手順
 
-1. **依存関係のインストール**
+#### 0. 前提条件
+- Node.js がインストールされていること
+- Windows環境の場合はGit Bashなどの Unix コマンドが使用できる環境が必要
+
+#### 1. **プロジェクトのセットアップ**
 ```bash
+# プロジェクトディレクトリに移動
+cd excelMCPserverSPEC
+
+# 依存関係のインストール (初回のみ)
 npm install
 ```
 
-2. **フォルダ比較データの生成**（2つの方法）
+インストールされるパッケージ:
+- exceljs: Excel ファイル生成
+- pdfkit-table: PDF ファイル生成
+- その他の依存パッケージ
 
-   **方法1: シェルスクリプト（jq必須）**
-   ```bash
-   bash compare_folders.sh /path/to/folder1 /path/to/folder2
-   # 例: bash compare_folders.sh ./test_folder1 ./test_folder2
-   ```
-   ※ この方法では、jqコマンドが必要です。インストールされていない場合はエラーになります。
+#### 2. **フォルダ比較データの生成**
 
-   **方法2: Node.jsスクリプト（推奨・外部依存なし）**
-   ```bash
-   node generate_comparison_data.js /path/to/folder1 /path/to/folder2
-   # 例: node generate_comparison_data.js ./test_folder1 ./test_folder2
-   ```
-   ※ この方法は追加の外部ソフトウェアを必要としないため、推奨されます。
-
-3. **レポート生成**
+推奨方法（Node.jsのみで実行）:
 ```bash
+# 構文
+node generate_comparison_data.js <フォルダ1のパス> <フォルダ2のパス>
+
+# サンプルデータでの実行例
+node generate_comparison_data.js ./test_folder1 ./test_folder2
+```
+
+実行結果:
+- `output/comparison_data.json` ファイルが生成されます
+- このJSONファイルには比較結果の詳細情報が格納されています
+
+#### 3. **レポート生成（Excel・PDF）**
+
+```bash
+# レポート生成の実行
 node generate_report.js
-# 設定ファイル（config.json）の設定に従ってExcel・PDFを生成
 ```
 
-### 出力ファイル
-- **Excel**: output/comparison_result.xlsx（設定ファイルで変更可能）
-- **PDF**: output/comparison_report.pdf（設定ファイルで変更可能）
-- **ログ**: logs/comparison_YYYYMMDD_HHMMSS.log
+このコマンドは以下を実行します:
+1. `output/comparison_data.json` を読み込み
+2. 比較結果を分析し整形
+3. `output/comparison_result.xlsx` ファイルを生成（複数シート含む詳細レポート）
+4. `output/comparison_report.pdf` ファイルを生成（概要レポート）
 
-### ステップバイステップ実行例
+#### 4. **出力の確認**
 
 ```bash
-# 1. 依存関係のインストール
+# 出力ファイルの確認
+ls -la output/
+
+# Excel ファイルの内容確認（可能であれば）
+# Windows: start output/comparison_result.xlsx
+# Mac: open output/comparison_result.xlsx
+```
+
+### 出力ファイルの詳細
+
+#### Excel レポート (comparison_result.xlsx)
+このExcelファイルには複数のシートが含まれています:
+
+1. **統合比較表示** - メインの比較シート
+   - フォルダ1とフォルダ2の全ファイル比較を表形式で表示
+   - パーミッション、オーナー、サイズ、更新日時を並べて表示
+   - 差異がある項目はハイライト表示
+
+2. **フォルダ1のみ** - フォルダ1にのみ存在するファイルのリスト
+
+3. **フォルダ2のみ** - フォルダ2にのみ存在するファイルのリスト
+
+4. **内容差異** - 内容が異なるファイルの詳細
+
+5. **ディレクトリ比較** - フォルダ構造の比較結果
+
+#### PDF レポート (comparison_report.pdf)
+- 比較の概要情報
+- 統計データとチャート（設定されている場合）
+
+#### ログファイル (logs/comparison_YYYYMMDD_HHMMSS.log)
+- 実行時の詳細ログ
+- エラーや警告メッセージ
+- 処理時間情報
+
+### 実行例（完全版）
+
+以下は、テストフォルダを使った完全な実行例です:
+
+```bash
+# 1. プロジェクトディレクトリに移動
+cd excelMCPserverSPEC
+
+# 2. 依存関係のインストール (初回のみ)
 npm install
 
-# 2. 比較データの生成 (Node.jsを使用)
+# 3. 比較データの生成 (推奨方法)
 node generate_comparison_data.js ./test_folder1 ./test_folder2
 
-# 3. レポート生成
+# 4. レポート生成の実行
 node generate_report.js
 
-# 4. 出力の確認
+# 5. 生成されたファイルの確認
 ls -la output/
 ```
 
@@ -175,27 +262,46 @@ bash simple_compare.sh ./test_folder1 ./test_folder2
 
 ## ファイル構成の詳細
 
-本プロジェクトには、以下の主要ファイルが含まれています：
+本プロジェクトには、以下のファイルが含まれており、それぞれ固有の役割を持っています：
 
 ### 主要スクリプト
-- **generate_report.js** - Excel/PDF レポートの生成を担当する Node.js スクリプト
-- **compare_folders.sh** - フォルダ比較を行うシェルスクリプト（jq に依存）
-- **generate_comparison_data.js** - jq を必要としない代替 Node.js 比較スクリプト
-- **simple_compare.sh** - 高速で単純な比較を行うシェルスクリプト
 
-### サポートファイル
-- **debug_report.js** - 比較データの構造を検証するデバッグスクリプト
-- **debug_specific.js** - レポート生成のエラーを特定するデバッグスクリプト
-- **config.json** - 比較とレポートの設定ファイル
+- **generate_comparison_data.js** - フォルダ間の比較を行い、詳細な差分情報をJSONファイルとして出力するNode.jsスクリプト。外部依存ソフトウェアなしで動作する推奨の比較ツール。
+- **generate_report.js** - 比較データ（JSON）を読み込み、Excelワークブックとして整形されたレポートを生成するNode.jsスクリプト。また、概要情報をPDFとしても出力。
+- **simple_compare.sh** - 高速で簡易的なフォルダ比較を行うシェルスクリプト。差分の概要だけを確認したい場合に使用。
+
+### デバッグ・サポートツール
+
+- **debug_report.js** - 比較データのJSON構造を検証し、問題点を特定するためのデバッグツール。JSONの構造やプロパティの存在確認に使用。
+- **debug_specific.js** - generate_report.jsの実行中に発生する可能性のあるエラーの原因調査用スクリプト。レポート生成のトラブルシューティングに使用。
+
+### 設定・環境ファイル
+
+- **config.json** - プログラムの動作設定を定義するJSON設定ファイル。比較オプション、出力オプション、除外パターンなどを制御。
+- **package.json** - Node.jsプロジェクトの依存関係と基本情報を定義するファイル。
+- **package-lock.json** - Node.js依存関係の正確なバージョンを固定するロックファイル。
+
+### ドキュメント
+
+- **README.md** - プロジェクトの概要、使用方法、構成などを説明するマークダウン形式のドキュメント（このファイル）。
+- **CLAUDE.md** - Claude Code AIアシスタントに対する指示やプロジェクト情報を提供するファイル。
+- **prompt.txt** - プロジェクトの作業指示書。
+
+### ディレクトリ
+
+- **logs/** - プログラム実行時のログファイルが出力されるディレクトリ。
+- **output/** - 生成されたJSONデータ、Excel、PDFファイルが格納されるディレクトリ。
+- **test_folder1/**, **test_folder2/** - テスト用のサンプルデータセット。様々なファイルタイプや属性を含む比較対象フォルダ。
 
 ### 依存関係
 
-| ファイル名 | 必要なソフトウェア | 備考 |
+| ファイル名 | 必要なソフトウェア | 説明 |
 |------------|-------------------|------|
-| generate_report.js | Node.js, 基本的な Unix コマンド (ls, etc.) | Excel/PDF 生成用 |
-| compare_folders.sh | jq, bash, find, diff, md5sum, etc. | 詳細比較用、jq が必須 |
-| generate_comparison_data.js | Node.js のみ | 外部コマンド依存なし |
-| simple_compare.sh | bash, find, comm | 基本的な比較用 |
+| generate_comparison_data.js | Node.js | フォルダの詳細比較を行い、比較データをJSONとして出力。**推奨ツール** |
+| generate_report.js | Node.js, 基本的な Unix コマンド (ls) | JSONデータを読み込み、Excel/PDFレポートを生成。パーミッションと所有者情報の取得にlsコマンドを使用。 |
+| debug_report.js | Node.js | JSONデータの構造を検証・分析し、問題点を診断。 |
+| debug_specific.js | Node.js | レポート生成時のエラーを調査するためのセクション単位のシミュレーション。 |
+| simple_compare.sh | bash, find, comm | 基本的な差分確認のみを行うシンプルなスクリプト。高速な概要確認用。 |
 
 ## 開発履歴
 
