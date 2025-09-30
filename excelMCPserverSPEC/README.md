@@ -21,11 +21,14 @@ excelMCPserverSPEC/
 ├── config.json               # 設定ファイル
 ├── generate_comparison_data.js # フォルダ比較データ生成Node.jsスクリプト
 ├── generate_report.js        # レポート生成Node.jsスクリプト
-├── simple_compare.sh         # シンプル比較用シェルスクリプト
-├── debug_report.js           # 比較データ構造検証用デバッグスクリプト
-├── debug_specific.js         # レポート生成エラー調査用デバッグスクリプト
 ├── package.json              # Node.js依存関係定義
 ├── package-lock.json         # Node.js依存関係の正確なバージョン定義
+├── utils/                    # ユーティリティスクリプトディレクトリ
+│   ├── run_folder_comparison.js # 統合実行スクリプト
+│   ├── simple_compare.sh        # シンプル比較用シェルスクリプト
+│   └── debug/                # デバッグ用スクリプトディレクトリ
+│       ├── debug_report.js   # 比較データ構造検証用デバッグスクリプト
+│       └── debug_specific.js # レポート生成エラー調査用デバッグスクリプト
 ├── logs/                     # ログ出力ディレクトリ
 ├── output/                   # 出力ファイル格納ディレクトリ
 │   ├── comparison_data.json  # 比較結果のJSONデータ
@@ -201,10 +204,10 @@ ls -la output/
 
 ```bash
 # 比較データの構造を確認
-node debug_report.js
+node utils/debug/debug_report.js
 
 # generate_report.jsのエラー調査
-node debug_specific.js
+node utils/debug/debug_specific.js
 ```
 
 ### シンプル比較スクリプト
@@ -212,8 +215,27 @@ node debug_specific.js
 高速な比較結果のみが必要な場合は、シンプルな比較スクリプトも利用可能です：
 
 ```bash
-bash simple_compare.sh ./test_folder1 ./test_folder2
+bash utils/simple_compare.sh ./test_folder1 ./test_folder2
 ```
+
+### 統合実行スクリプト
+
+フォルダ比較からレポート生成までを一度に実行するための便利なスクリプトを用意しています：
+
+```bash
+# 基本的な使用方法
+node utils/run_folder_comparison.js <フォルダ1のパス> <フォルダ2のパス>
+
+# 例: テストフォルダでの実行
+node utils/run_folder_comparison.js ./test_folder1 ./test_folder2
+```
+
+このスクリプトは以下の処理を自動的に行います：
+1. フォルダ比較データの生成（generate_comparison_data.js）
+2. Excel・PDFレポートの生成（generate_report.js）
+3. 出力ファイルのパスを表示
+
+どのディレクトリからでも実行できるよう、相対パス解決機能を備えています。
 
 ## 比較項目
 
@@ -268,12 +290,13 @@ bash simple_compare.sh ./test_folder1 ./test_folder2
 
 - **generate_comparison_data.js** - フォルダ間の比較を行い、詳細な差分情報をJSONファイルとして出力するNode.jsスクリプト。外部依存ソフトウェアなしで動作する推奨の比較ツール。
 - **generate_report.js** - 比較データ（JSON）を読み込み、Excelワークブックとして整形されたレポートを生成するNode.jsスクリプト。また、概要情報をPDFとしても出力。
+- **utils/run_folder_comparison.js** - 比較からレポート生成までを一括で実行するユーティリティスクリプト。異なるディレクトリからの実行をサポート。
 - **simple_compare.sh** - 高速で簡易的なフォルダ比較を行うシェルスクリプト。差分の概要だけを確認したい場合に使用。
 
 ### デバッグ・サポートツール
 
-- **debug_report.js** - 比較データのJSON構造を検証し、問題点を特定するためのデバッグツール。JSONの構造やプロパティの存在確認に使用。
-- **debug_specific.js** - generate_report.jsの実行中に発生する可能性のあるエラーの原因調査用スクリプト。レポート生成のトラブルシューティングに使用。
+- **utils/debug/debug_report.js** - 比較データのJSON構造を検証し、問題点を特定するためのデバッグツール。JSONの構造やプロパティの存在確認に使用。
+- **utils/debug/debug_specific.js** - generate_report.jsの実行中に発生する可能性のあるエラーの原因調査用スクリプト。レポート生成のトラブルシューティングに使用。
 
 ### 設定・環境ファイル
 
@@ -299,9 +322,9 @@ bash simple_compare.sh ./test_folder1 ./test_folder2
 |------------|-------------------|------|
 | generate_comparison_data.js | Node.js | フォルダの詳細比較を行い、比較データをJSONとして出力。**推奨ツール** |
 | generate_report.js | Node.js, 基本的な Unix コマンド (ls) | JSONデータを読み込み、Excel/PDFレポートを生成。パーミッションと所有者情報の取得にlsコマンドを使用。 |
-| debug_report.js | Node.js | JSONデータの構造を検証・分析し、問題点を診断。 |
-| debug_specific.js | Node.js | レポート生成時のエラーを調査するためのセクション単位のシミュレーション。 |
-| simple_compare.sh | bash, find, comm | 基本的な差分確認のみを行うシンプルなスクリプト。高速な概要確認用。 |
+| utils/debug/debug_report.js | Node.js | JSONデータの構造を検証・分析し、問題点を診断。 |
+| utils/debug/debug_specific.js | Node.js | レポート生成時のエラーを調査するためのセクション単位のシミュレーション。 |
+| utils/simple_compare.sh | bash, find, comm | 基本的な差分確認のみを行うシンプルなスクリプト。高速な概要確認用。 |
 
 ## 開発履歴
 
