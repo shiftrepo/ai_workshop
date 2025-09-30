@@ -1,0 +1,2 @@
+This file only exists in folder1
+Pattern: Unique file

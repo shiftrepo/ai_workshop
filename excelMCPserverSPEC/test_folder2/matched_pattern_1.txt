@@ -1,0 +1,2 @@
+This is a file that exists in both folders with identical content.
+Pattern: Exact match

@@ -1,0 +1,17 @@
+{
+  "name": "excel-mcp-server",
+  "version": "1.0.0",
+  "description": "フォルダ比較ツールとExcel/PDFレポート生成",
+  "main": "generate_report.js",
+  "scripts": {
+    "start": "node generate_report.js",
+    "compare": "bash compare_folders.sh"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "exceljs": "^4.3.0",
+    "pdfkit": "^0.13.0",
+    "pdfkit-table": "^0.1.99"
+  }
+}

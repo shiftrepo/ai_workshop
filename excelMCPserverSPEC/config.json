@@ -1,0 +1,36 @@
+{
+  "exclude_patterns": [
+    "*.tmp",
+    "*.log",
+    ".git/*",
+    "node_modules/*"
+  ],
+  "exclude_directories": [
+    ".git",
+    "node_modules",
+    "temp"
+  ],
+  "comparison_options": {
+    "check_file_existence": true,
+    "check_file_content": true,
+    "check_file_attributes": true,
+    "check_directory_structure": true,
+    "check_file_types": true,
+    "check_permissions": true
+  },
+  "output_options": {
+    "generate_excel": true,
+    "generate_pdf": true,
+    "excel_filename": "comparison_result.xlsx",
+    "pdf_filename": "comparison_report.pdf"
+  },
+  "log_options": {
+    "log_level": "info",
+    "log_directory": "./logs"
+  },
+  "test_folders": {
+    "folder1": "./test_folder1",
+    "folder2": "./test_folder2",
+    "description": "Default test folders for running comparison tests"
+  }
+}
