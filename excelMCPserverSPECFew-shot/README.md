@@ -158,21 +158,33 @@ bash setup.sh
 ```bash
 # サーバにcollect.shを配置後
 cd server
-./collect.sh /path/to/folder1 folder1.json
-./collect.sh /path/to/folder2 folder2.json
+
+# 基本的な使い方（outputディレクトリに自動保存）
+./collect.sh /path/to/folder1
+./collect.sh /path/to/folder2
+
+# または、出力先を明示的に指定
+./collect.sh /path/to/folder1 ../output/folder1.json
+./collect.sh /path/to/folder2 ../output/folder2.json
 
 # 生成されたJSONファイルをクライアントに転送
 ```
 
+**注意**: 出力ファイルは対象ディレクトリ内には作成できません。デフォルトでは `../output/` ディレクトリに保存されます。
+
 ### 3. クライアント側での比較・Excel生成
 ```bash
-# JSONファイルをclient/ディレクトリに配置後
 cd client
-node compare.js folder1.json folder2.json output.xlsx
+
+# 基本的な使い方（outputディレクトリに自動保存）
+node compare.js ../output/folder1.json ../output/folder2.json
+
+# または、出力先を明示的に指定
+node compare.js ../output/folder1.json ../output/folder2.json ../output/comparison.xlsx
 ```
 
 ### 4. 結果確認
-生成された `output.xlsx` をExcelで開いて確認します。
+`output/comparison.xlsx` をExcelで開いて確認します。
 
 ## Excelファイルの見方
 

@@ -1,0 +1,393 @@
+{
+  "comparison_info": {
+    "folder1": "C:\\ClaudeCode\\ai_workshop\\excelMCPserverSPEC\\test_folder1",
+    "folder2": "C:\\ClaudeCode\\ai_workshop\\excelMCPserverSPEC\\test_folder2",
+    "timestamp": "2025-09-30T06:11:47.630Z"
+  },
+  "file_existence": {
+    "only_in_dir1": [
+      "only_in_1.txt",
+      "symlink.txt",
+      "unique_to_folder1.txt"
+    ],
+    "only_in_dir2": [
+      "only_in_2.txt",
+      "unique_to_folder2.txt"
+    ],
+    "common_files": [
+      "binary_data.bin",
+      "date_file.txt",
+      "executable.sh",
+      "matched_pattern_1.txt",
+      "matched_pattern_2.txt",
+      "matched_pattern_3.txt",
+      "nested\\deep\\structure\\deep_file.txt",
+      "readonly.txt",
+      "regular.txt",
+      "same_file.txt",
+      "subdir\\file.txt",
+      "subdir\\subdir_file.txt",
+      "test_file1.txt"
+    ]
+  },
+  "file_content": {
+    "identical_files": [
+      {
+        "file": "binary_data.bin",
+        "checksum": "586278fd947458a39ed57aaabda603d7"
+      },
+      {
+        "file": "matched_pattern_1.txt",
+        "checksum": "764d343b5bf63b179c9ea318e85d4ffb"
+      },
+      {
+        "file": "matched_pattern_3.txt",
+        "checksum": "a0a6731b5437843916ecd9efd5a191be"
+      },
+      {
+        "file": "same_file.txt",
+        "checksum": "2c9c2989d29fa323efeb4c5d4972cc76"
+      },
+      {
+        "file": "subdir\\file.txt",
+        "checksum": "462563bff64488f395f76179f1604acd"
+      }
+    ],
+    "different_files": [
+      {
+        "file": "date_file.txt",
+        "checksum_folder1": "75008e2246014220a6d307653d23ba0d",
+        "checksum_folder2": "78be72a94f92eed6e2cd2149ba1aecc2"
+      },
+      {
+        "file": "executable.sh",
+        "checksum_folder1": "f46c00a7602404b9fcc0d1d5978db645",
+        "checksum_folder2": "2d5506da9e1450a8af2a7d2455e00b5e"
+      },
+      {
+        "file": "matched_pattern_2.txt",
+        "checksum_folder1": "5622ea1991adc930dfc194badc8c68aa",
+        "checksum_folder2": "d0f941b3792414a790efa56824c7da08"
+      },
+      {
+        "file": "nested\\deep\\structure\\deep_file.txt",
+        "checksum_folder1": "5342e33327ef82430b1637096a76afc1",
+        "checksum_folder2": "4065277884d8a3d5be31f704ae403ce8"
+      },
+      {
+        "file": "readonly.txt",
+        "checksum_folder1": "5893dff3e172cee8858d78008c7ab433",
+        "checksum_folder2": "f58367cf81b6e7e6d834285220f1225d"
+      },
+      {
+        "file": "regular.txt",
+        "checksum_folder1": "49f2b83dd1727972207f215c77000057",
+        "checksum_folder2": "f67c97f35c83d4846132c3a070608326"
+      },
+      {
+        "file": "subdir\\subdir_file.txt",
+        "checksum_folder1": "d8d8212c663512dfa5a6854c84f33374",
+        "checksum_folder2": "35b92a19b3c396474edd722df8ca69f9"
+      },
+      {
+        "file": "test_file1.txt",
+        "checksum_folder1": "a712c3525b751fad4db23ce77511036a",
+        "checksum_folder2": "6f577df544f993d48b6a4807ec01eb25"
+      }
+    ]
+  },
+  "file_attributes": {
+    "attribute_details": [
+      {
+        "file": "binary_data.bin",
+        "size": {
+          "folder1": 78,
+          "folder2": 78,
+          "different": false
+        },
+        "timestamp": {
+          "folder1": "2025-09-30T05:03:13.582Z",
+          "folder2": "2025-09-30T05:03:21.358Z",
+          "different": true
+        },
+        "permissions": {
+          "folder1": 33206,
+          "folder2": 33206,
+          "different": false
+        }
+      },
+      {
+        "file": "date_file.txt",
+        "size": {
+          "folder1": 20,
+          "folder2": 20,
+          "different": false
+        },
+        "timestamp": {
+          "folder1": "2025-09-30T02:44:26.931Z",
+          "folder2": "2025-09-30T02:44:31.840Z",
+          "different": true
+        },
+        "permissions": {
+          "folder1": 33206,
+          "folder2": 33206,
+          "different": false
+        }
+      },
+      {
+        "file": "executable.sh",
+        "size": {
+          "folder1": 95,
+          "folder2": 95,
+          "different": false
+        },
+        "timestamp": {
+          "folder1": "2025-09-30T02:44:06.178Z",
+          "folder2": "2025-09-30T02:44:11.902Z",
+          "different": true
+        },
+        "permissions": {
+          "folder1": 33206,
+          "folder2": 33206,
+          "different": false
+        }
+      },
+      {
+        "file": "matched_pattern_1.txt",
+        "size": {
+          "folder1": 88,
+          "folder2": 88,
+          "different": false
+        },
+        "timestamp": {
+          "folder1": "2025-09-30T05:02:01.286Z",
+          "folder2": "2025-09-30T05:02:06.726Z",
+          "different": true
+        },
+        "permissions": {
+          "folder1": 33206,
+          "folder2": 33206,
+          "different": false
+        }
+      },
+      {
+        "file": "matched_pattern_2.txt",
+        "size": {
+          "folder1": 94,
+          "folder2": 94,
+          "different": false
+        },
+        "timestamp": {
+          "folder1": "2025-09-30T05:02:13.216Z",
+          "folder2": "2025-09-30T05:02:19.157Z",
+          "different": true
+        },
+        "permissions": {
+          "folder1": 33206,
+          "folder2": 33206,
+          "different": false
+        }
+      },
+      {
+        "file": "matched_pattern_3.txt",
+        "size": {
+          "folder1": 39,
+          "folder2": 39,
+          "different": false
+        },
+        "timestamp": {
+          "folder1": "2025-09-30T05:02:24.892Z",
+          "folder2": "2025-09-30T05:02:30.535Z",
+          "different": true
+        },
+        "permissions": {
+          "folder1": 33206,
+          "folder2": 33060,
+          "different": true
+        }
+      },
+      {
+        "file": "nested\\deep\\structure\\deep_file.txt",
+        "size": {
+          "folder1": 28,
+          "folder2": 48,
+          "different": true
+        },
+        "timestamp": {
+          "folder1": "2025-09-30T05:03:02.074Z",
+          "folder2": "2025-09-30T05:03:07.625Z",
+          "different": true
+        },
+        "permissions": {
+          "folder1": 33206,
+          "folder2": 33206,
+          "different": false
+        }
+      },
+      {
+        "file": "readonly.txt",
+        "size": {
+          "folder1": 65,
+          "folder2": 89,
+          "different": true
+        },
+        "timestamp": {
+          "folder1": "2025-09-30T02:44:16.729Z",
+          "folder2": "2025-09-30T02:44:21.876Z",
+          "different": true
+        },
+        "permissions": {
+          "folder1": 33060,
+          "folder2": 33060,
+          "different": false
+        }
+      },
+      {
+        "file": "regular.txt",
+        "size": {
+          "folder1": 84,
+          "folder2": 84,
+          "different": false
+        },
+        "timestamp": {
+          "folder1": "2025-09-30T02:43:26.605Z",
+          "folder2": "2025-09-30T02:43:32.286Z",
+          "different": true
+        },
+        "permissions": {
+          "folder1": 33206,
+          "folder2": 33206,
+          "different": false
+        }
+      },
+      {
+        "file": "same_file.txt",
+        "size": {
+          "folder1": 70,
+          "folder2": 70,
+          "different": false
+        },
+        "timestamp": {
+          "folder1": "2025-09-30T02:43:47.345Z",
+          "folder2": "2025-09-30T02:43:47.345Z",
+          "different": false
+        },
+        "permissions": {
+          "folder1": 33206,
+          "folder2": 33206,
+          "different": false
+        }
+      },
+      {
+        "file": "subdir\\file.txt",
+        "size": {
+          "folder1": 21,
+          "folder2": 21,
+          "different": false
+        },
+        "timestamp": {
+          "folder1": "2025-09-29T00:53:23.389Z",
+          "folder2": "2025-09-29T00:53:23.392Z",
+          "different": true
+        },
+        "permissions": {
+          "folder1": 33206,
+          "folder2": 33206,
+          "different": false
+        }
+      },
+      {
+        "file": "subdir\\subdir_file.txt",
+        "size": {
+          "folder1": 74,
+          "folder2": 74,
+          "different": false
+        },
+        "timestamp": {
+          "folder1": "2025-09-30T02:44:37.225Z",
+          "folder2": "2025-09-30T02:44:41.995Z",
+          "different": true
+        },
+        "permissions": {
+          "folder1": 33206,
+          "folder2": 33206,
+          "different": false
+        }
+      },
+      {
+        "file": "test_file1.txt",
+        "size": {
+          "folder1": 73,
+          "folder2": 105,
+          "different": true
+        },
+        "timestamp": {
+          "folder1": "2025-09-30T02:43:37.215Z",
+          "folder2": "2025-09-30T02:43:42.662Z",
+          "different": true
+        },
+        "permissions": {
+          "folder1": 33206,
+          "folder2": 33206,
+          "different": false
+        }
+      }
+    ]
+  },
+  "directory_structure": {
+    "only_in_dir1": [],
+    "only_in_dir2": [],
+    "common_directories": [
+      "nested",
+      "nested\\deep",
+      "nested\\deep\\structure",
+      "subdir"
+    ]
+  },
+  "permissions": {
+    "owner_diff_count": 1,
+    "group_diff_count": 1,
+    "other_diff_count": 1,
+    "owner_diff_files": [
+      "matched_pattern_3.txt"
+    ],
+    "group_diff_files": [
+      "matched_pattern_3.txt"
+    ],
+    "other_diff_files": [
+      "matched_pattern_3.txt"
+    ],
+    "permissions_details": [
+      {
+        "file": "matched_pattern_3.txt",
+        "numeric_mode": {
+          "folder1": 33206,
+          "folder2": 33060
+        },
+        "owner": {
+          "folder1": "",
+          "folder2": ""
+        },
+        "group": {
+          "folder1": "",
+          "folder2": ""
+        },
+        "owner_permissions": {
+          "folder1": 6,
+          "folder2": 4,
+          "different": true
+        },
+        "group_permissions": {
+          "folder1": 6,
+          "folder2": 4,
+          "different": true
+        },
+        "other_permissions": {
+          "folder1": 6,
+          "folder2": 4,
+          "different": true
+        }
+      }
+    ]
+  }
+}

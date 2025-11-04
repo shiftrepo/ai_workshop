@@ -4,26 +4,81 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This repository (ai_workshop) contains resources for a workshop aimed at promoting AI usage through environment setup and basic operations. It primarily includes documentation on GitHub integration and using Claude Code.
+This repository (ai_workshop) contains resources for an AI workshop, including:
+1. Documentation for environment setup (SSH keys, PAT, Node.js, GitHub CLI, Claude Code)
+2. A directory comparison tool (excelMCPserverSPECFew-shot) that generates Excel reports in sdiff format
 
-## Environment Setup and Essential Commands
+## Project: Directory Comparison Tool (excelMCPserverSPECFew-shot)
 
-### Basic GitHub Commands
+This tool compares two directories and generates an Excel file with side-by-side comparison similar to Linux's sdiff command.
+
+### Architecture
+
+**Two-phase design for on-premise environments:**
+- **Server-side (Linux)**: Collects directory information using `ls` and `md5sum`, outputs JSON
+- **Client-side (Node.js)**: Reads JSON files, performs comparison, generates Excel with ExcelJS
+
+**Key principle**: Linux command outputs (permissions, owner, group, timestamps) must never be transformed or converted - use raw string values only.
+
+### Essential Commands
 
 ```bash
-# Check repository information
-git remote -v
+# Initial setup (run once)
+cd excelMCPserverSPECFew-shot
+bash setup.sh
 
-# Get issues list from remote repository
+# Server-side: Collect directory information (on Linux)
+cd server
+./collect.sh /path/to/folder1 folder1.json
+./collect.sh /path/to/folder2 folder2.json
+
+# Client-side: Compare and generate Excel (on Windows/Mac)
+cd client
+node compare.js folder1.json folder2.json output.xlsx
+```
+
+### Code Architecture
+
+**server/collect.sh**:
+- Uses `ls -lAR --time-style=full-iso` to recursively collect file metadata
+- Extracts: permissions, owner, group, size, datetime, symlink targets
+- Calculates MD5 checksums for regular files
+- Outputs structured JSON with all node information
+
+**client/compare.js**:
+- Loads two JSON files and maps nodes by path
+- Performs detailed comparison: type, permissions, owner, group, size, datetime, checksum
+- Generates Excel with:
+  - Column A-F: Folder 1 info (name, path, permissions, owner, datetime, checksum)
+  - Column G-H: Diff status and filter type
+  - Column I-N: Folder 2 info (same structure)
+  - Color coding: Pink (differences), Blue/Purple (exists in one folder only)
+  - Red text highlights specific changed fields
+  - Auto-filter enabled on all columns
+
+**client/package.json**:
+- Single dependency: `exceljs` for Excel file generation
+
+### Important Implementation Rules
+
+1. **Never transform Linux command outputs**: Use ls/md5sum results as-is (string values only)
+2. **Preserve exact datetime formats**: Use `--time-style=full-iso` for consistent ISO 8601 timestamps
+3. **Handle all node types**: Regular files, directories, symlinks
+4. **Checksum files only**: Directories get null checksum, or "ディレクトリ" label in Excel
+
+### GitHub Integration
+
+```bash
+# View issues
 gh issue list -R [username]/[repository] --json number,title,state,createdAt
 
-# Check authentication status
-gh auth status
+# View specific issue with attachments
+gh issue view <number> --repo <owner>/<repo> --json number,title,body,comments
 ```
 
 ### Environment Variables
 
-The following environment variables are required for Claude Code and GitHub integration:
+Required for Claude Code and GitHub integration:
 
 ```
 ANTHROPIC_MODEL=us.anthropic.claude-3-7-sonnet-20250219-v1:0
@@ -35,35 +90,9 @@ CLAUDE_CODE_USE_BEDROCK=1
 GH_TOKEN=[personal GitHub access token]
 ```
 
-## Repository Structure
+### Troubleshooting
 
-This repository has the following structure:
-
-```
-ai_workshop/
-├── doc/                           # Environment setup documentation
-│   ├── ClaudeCodeのインストールと設定.md
-│   ├── GitHubCLIのインストール.md
-│   ├── Githubにリポジトリを作成してClaudeCodeでアクセス.md
-│   ├── SSHキー作成と登録.md
-│   ├── img/                       # Screenshots and images
-│   ├── nodeのインストール.md
-│   ├── patの作成.md
-│   └── 環境変数の設定.md
-├── .gitignore                     # Git tracking exclusions
-└── README.md                      # Overview of setup procedures
-```
-
-## Important Workflows
-
-1. **Environment Setup Process**: Follow the procedures outlined in README.md (SSH key creation → PAT creation → Environment variables setup → Node.js setup → GitHub CLI setup → Claude Code setup → Repository creation/access).
-
-2. **GitHub Integration**: Use the GH_TOKEN set in environment variables to access repository and issue information via GitHub CLI.
-
-3. **Using Claude Code**: After completing the environment setup, launch with the `claude` command and use GitHub integration features for code and issue management.
-
-## Troubleshooting
-
-* **Environment Variables Issues**: After setting environment variables, open a new command prompt window or restart your PC to apply the changes.
-* **GitHub Authentication Errors**: Check the expiration date and permissions of your PAT. Note that the expiration period must be set to less than one year.
-* **SSH Key Related Errors**: Verify the registration status of your keys.
+* **Environment Variables**: After setting, open new command prompt or restart PC to apply changes
+* **GitHub Authentication**: Check PAT expiration date and permissions (must be < 1 year)
+* **SSH Key Errors**: Verify key registration status
+* **Bash script errors on Windows**: Use Git Bash or similar Unix-compatible environment

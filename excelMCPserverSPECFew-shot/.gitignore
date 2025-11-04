@@ -1,0 +1,36 @@
+# Output directory
+output/
+
+# Node modules
+node_modules/
+client/node_modules/
+
+# NPM
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Temporary files
+*.tmp
+*.temp
+
+# Test output files (if generated outside output/)
+*.json
+!client/package.json
+!client/package-lock.json
+
+# Excel files (if generated outside output/)
+*.xlsx
+*.xls
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

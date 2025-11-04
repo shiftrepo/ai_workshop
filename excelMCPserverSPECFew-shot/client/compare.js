@@ -2,7 +2,8 @@
 
 /**
  * ディレクトリ比較ツール - クライアント側スクリプト
- * 使用方法: node compare.js <folder1.json> <folder2.json> <output.xlsx>
+ * 使用方法: node compare.js <folder1.json> <folder2.json> [output.xlsx]
+ * 出力ファイルを省略した場合は、../output/comparison.xlsx に出力されます
  */
 
 const fs = require('fs');
@@ -10,13 +11,20 @@ const path = require('path');
 const ExcelJS = require('exceljs');
 
 // 引数チェック
-if (process.argv.length !== 5) {
-    console.error('使用方法: node compare.js <folder1.json> <folder2.json> <output.xlsx>');
-    console.error('例: node compare.js folder1.json folder2.json comparison.xlsx');
+if (process.argv.length < 4 || process.argv.length > 5) {
+    console.error('使用方法: node compare.js <folder1.json> <folder2.json> [output.xlsx]');
+    console.error('例: node compare.js folder1.json folder2.json');
+    console.error('例: node compare.js folder1.json folder2.json custom_output.xlsx');
     process.exit(1);
 }
 
-const [, , json1Path, json2Path, outputPath] = process.argv;
+const [, , json1Path, json2Path, outputPath = path.join(__dirname, '../output/comparison.xlsx')] = process.argv;
+
+// 出力ディレクトリの作成
+const outputDir = path.dirname(outputPath);
+if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+}
 
 // JSONファイル読み込み
 function loadJson(filePath) {

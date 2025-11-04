@@ -1,19 +1,32 @@
 #!/bin/bash
 
 # ディレクトリ比較ツール - サーバ側情報収集スクリプト
-# 使用方法: ./collect.sh <対象ディレクトリ> <出力JSONファイル>
+# 使用方法: ./collect.sh <対象ディレクトリ> [出力JSONファイル]
+# 出力JSONファイルを省略した場合は、../output/<ディレクトリ名>.json に出力されます
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUTPUT_DIR="$SCRIPT_DIR/../output"
+
 # 引数チェック
-if [ $# -ne 2 ]; then
-    echo "使用方法: $0 <対象ディレクトリ> <出力JSONファイル>" >&2
-    echo "例: $0 /path/to/folder output.json" >&2
+if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+    echo "使用方法: $0 <対象ディレクトリ> [出力JSONファイル]" >&2
+    echo "例: $0 /path/to/folder" >&2
+    echo "例: $0 /path/to/folder custom_output.json" >&2
     exit 1
 fi
 
 TARGET_DIR="$1"
-OUTPUT_FILE="$2"
+
+# 出力ファイル名の決定
+if [ $# -eq 2 ]; then
+    OUTPUT_FILE="$2"
+else
+    # 出力ファイル名が指定されていない場合、ディレクトリ名から生成
+    DIR_BASENAME=$(basename "$TARGET_DIR")
+    OUTPUT_FILE="$OUTPUT_DIR/${DIR_BASENAME}.json"
+fi
 
 # ディレクトリの存在チェック
 if [ ! -d "$TARGET_DIR" ]; then
@@ -24,7 +37,22 @@ fi
 # 絶対パスに変換
 TARGET_DIR=$(cd "$TARGET_DIR" && pwd)
 
+# 出力ディレクトリの作成（デフォルト出力先の場合）
+if [ $# -eq 1 ]; then
+    mkdir -p "$OUTPUT_DIR"
+fi
+
+# 出力ファイルが対象ディレクトリ内でないことを確認
+OUTPUT_FILE_ABS=$(realpath "$OUTPUT_FILE" 2>/dev/null || echo "$OUTPUT_FILE")
+if [[ "$OUTPUT_FILE_ABS" == "$TARGET_DIR"* ]]; then
+    echo "エラー: 出力ファイルを対象ディレクトリ内に作成できません" >&2
+    echo "対象: $TARGET_DIR" >&2
+    echo "出力: $OUTPUT_FILE_ABS" >&2
+    exit 1
+fi
+
 echo "情報収集開始: $TARGET_DIR"
+echo "出力先: $OUTPUT_FILE"
 
 # 一時ファイル
 TEMP_LS=$(mktemp)
