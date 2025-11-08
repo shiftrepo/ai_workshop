@@ -58,6 +58,9 @@ python
 python -m venv venv
 
 # 作成した仮想環境を有効化する
+.\venv\Scripts\Activate.ps1
+
+#Linux、Macの場合はソースしてください。
 source venv/Scripts/activate
 
 # 必要なパッケージをインストールする
