@@ -1,0 +1,25 @@
+# MCP Servers (optional)
+mcpServers:
+  serena:
+    command: npx
+    args:
+      - -y
+      - serena-mcp@latest
+    env:
+      SERENA_PROJECT: C:\ClaudeCode\ai_workshop\library_system_with_serena
+
+# Choose ONLY ONE of the following LLM providers
+llm:
+  provider: aws
+  model: us.anthropic.claude-sonnet-4-5-20250929-v1:0
+  maxIterations: 50
+  aws:
+    region: ${AWS_REGION}
+    accessKeyId: ${AWS_ACCESS_KEY_ID}
+    secretAccessKey: ${AWS_SECRET_ACCESS_KEY}
+    
+# System Prompt - User customizable
+systemPrompt:
+  enabled: true
+  content: |
+    You are an AI programming assistant focused on coding and reasoning tasks.
