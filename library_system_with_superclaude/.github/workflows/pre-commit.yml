@@ -1,0 +1,182 @@
+name: Pre-commit Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  lint-and-format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+
+      - name: Install backend dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Lint backend
+        working-directory: ./server
+        run: npm run lint
+
+      - name: Lint frontend
+        working-directory: ./client
+        run: npm run lint
+
+      - name: Check TypeScript types
+        working-directory: ./client
+        run: npm run type-check
+
+      - name: Check code formatting (backend)
+        working-directory: ./server
+        run: npx prettier --check "src/**/*.{js,json}"
+        continue-on-error: true
+
+      - name: Check code formatting (frontend)
+        working-directory: ./client
+        run: npx prettier --check "src/**/*.{ts,tsx,vue,json}"
+        continue-on-error: true
+
+  commit-message-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check commit messages
+        run: |
+          git log --format=%B -n 1 ${{ github.event.pull_request.head.sha }} | grep -qE '^(feat|fix|docs|style|refactor|perf|test|chore|ci)(\(.+\))?: .{1,100}$' || {
+            echo "❌ Commit message does not follow conventional commits format"
+            echo "Format: type(scope): description"
+            echo "Types: feat, fix, docs, style, refactor, perf, test, chore, ci"
+            echo "Example: feat(auth): add JWT authentication"
+            exit 1
+          }
+
+  dependency-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check for security vulnerabilities (backend)
+        working-directory: ./server
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Check for security vulnerabilities (frontend)
+        working-directory: ./client
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Check for outdated dependencies (backend)
+        working-directory: ./server
+        run: npm outdated
+        continue-on-error: true
+
+      - name: Check for outdated dependencies (frontend)
+        working-directory: ./client
+        run: npm outdated
+        continue-on-error: true
+
+  pr-size-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check PR size
+        run: |
+          FILES_CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...${{ github.sha }} | wc -l)
+          LINES_CHANGED=$(git diff --shortstat origin/${{ github.base_ref }}...${{ github.sha }} | grep -oE '[0-9]+ insertions?' | grep -oE '[0-9]+')
+
+          echo "Files changed: $FILES_CHANGED"
+          echo "Lines changed: $LINES_CHANGED"
+
+          if [ "$FILES_CHANGED" -gt 50 ]; then
+            echo "⚠️ Warning: This PR modifies more than 50 files"
+          fi
+
+          if [ "$LINES_CHANGED" -gt 1000 ]; then
+            echo "⚠️ Warning: This PR has more than 1000 line changes"
+            echo "Consider breaking it into smaller PRs for easier review"
+          fi
+
+  test-coverage-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+
+      - name: Install backend dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Run backend tests with coverage
+        working-directory: ./server
+        run: npm run test -- --coverage --maxWorkers=2
+
+      - name: Run frontend tests with coverage
+        working-directory: ./client
+        run: npm run test:unit -- --coverage
+
+      - name: Check coverage thresholds (backend)
+        working-directory: ./server
+        run: |
+          COVERAGE=$(npx nyc report --reporter=json-summary | jq '.total.lines.pct')
+          echo "Backend coverage: $COVERAGE%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "❌ Backend coverage is below 80%"
+            exit 1
+          fi
+
+      - name: Check coverage thresholds (frontend)
+        working-directory: ./client
+        run: |
+          COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+          echo "Frontend coverage: $COVERAGE%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "❌ Frontend coverage is below 80%"
+            exit 1
+          fi
+
+  label-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check PR labels
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            const requiredLabels = ['feature', 'bugfix', 'enhancement', 'documentation', 'breaking-change'];
+
+            if (labels.length === 0) {
+              core.setFailed('❌ This PR needs at least one label');
+              return;
+            }
+
+            const hasValidLabel = requiredLabels.some(label => labels.includes(label));
+            if (!hasValidLabel) {
+              core.setFailed(`❌ This PR needs one of the following labels: ${requiredLabels.join(', ')}`);
+            }
