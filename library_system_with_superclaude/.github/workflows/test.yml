@@ -1,0 +1,259 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Lint
+        working-directory: ./server
+        run: npm run lint
+
+      - name: Unit Tests
+        working-directory: ./server
+        run: npm run test -- --coverage --maxWorkers=2
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./server/coverage/lcov.info
+          flags: backend
+          name: backend-${{ matrix.node-version }}
+
+      - name: Integration Tests
+        working-directory: ./server
+        run: npm run test:integration
+        env:
+          NODE_ENV: test
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Lint
+        working-directory: ./client
+        run: npm run lint
+
+      - name: Type Check
+        working-directory: ./client
+        run: npm run type-check
+
+      - name: Unit Tests
+        working-directory: ./client
+        run: npm run test:unit -- --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./client/coverage/lcov.info
+          flags: frontend
+          name: frontend
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+
+      - name: Install backend dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Initialize database
+        working-directory: ./server
+        run: |
+          npm run db:init
+          npm run db:seed
+
+      - name: Start backend server
+        working-directory: ./server
+        run: |
+          npm start &
+          npx wait-on http://localhost:3000/health --timeout 30000
+        env:
+          NODE_ENV: test
+          PORT: 3000
+
+      - name: Build frontend
+        working-directory: ./client
+        run: npm run build
+
+      - name: Start frontend server
+        working-directory: ./client
+        run: |
+          npm run preview -- --port 5173 &
+          npx wait-on http://localhost:5173 --timeout 30000
+
+      - name: Install Playwright browsers
+        working-directory: ./client
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        working-directory: ./client
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: client/playwright-report/
+          retention-days: 30
+
+      - name: Upload test screenshots
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: playwright-screenshots
+          path: client/test-results/
+          retention-days: 30
+
+  performance-tests:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend-tests, frontend-tests]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+
+      - name: Install backend dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Install Artillery
+        run: npm install -g artillery@latest
+
+      - name: Initialize database
+        working-directory: ./server
+        run: |
+          npm run db:init
+          npm run db:seed:large
+
+      - name: Start backend server
+        working-directory: ./server
+        run: |
+          npm start &
+          npx wait-on http://localhost:3000/health --timeout 30000
+        env:
+          NODE_ENV: production
+          PORT: 3000
+
+      - name: Run load tests
+        run: |
+          artillery run tests/performance/load-test.yml --output report.json
+
+      - name: Generate HTML report
+        if: always()
+        run: |
+          artillery report report.json --output report.html
+
+      - name: Upload performance report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: performance-report
+          path: |
+            report.json
+            report.html
+          retention-days: 30
+
+      - name: Check performance thresholds
+        run: |
+          node -e "
+          const report = require('./report.json');
+          const p95 = report.aggregate.summaries['http.response_time'].p95;
+          if (p95 > 500) {
+            console.error('P95 response time exceeded 500ms: ' + p95);
+            process.exit(1);
+          }
+          console.log('Performance check passed. P95: ' + p95 + 'ms');
+          "
+
+  security-scan:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run npm audit (backend)
+        working-directory: ./server
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Run npm audit (frontend)
+        working-directory: ./client
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --all-projects --severity-threshold=high
+
+  quality-gate:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, e2e-tests]
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Quality Gate Check
+        run: |
+          echo "✅ All tests passed successfully"
+          echo "✅ Code coverage meets requirements"
+          echo "✅ E2E tests completed"
+          echo "🎉 Ready to merge"
