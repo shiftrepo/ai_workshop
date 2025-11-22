@@ -1,124 +1,124 @@
-# Development Environment for Log Collector Tool
+# ログ収集ツール 開発環境
 
-This directory contains development and testing infrastructure for the Log Collector Tool.
+このディレクトリには、ログ収集ツールの開発とテストのためのインフラストラクチャが含まれています。
 
-## Directory Structure
+## ディレクトリ構成
 
 ```
 dev-environment/
-├── docker/                  # Docker containerization
-│   ├── Dockerfile           # Container image definition
-│   ├── docker-compose.yml   # 3-server cluster orchestration
-│   ├── setup-containers.sh  # Container management script
-│   ├── .env.example         # Environment configuration template
-│   └── DEPLOYMENT_GUIDE.md  # Detailed deployment instructions
-├── scripts/                 # Test and development scripts
-│   ├── startup.sh           # Container initialization script
-│   ├── generate-logs.sh     # Continuous log generation
-│   ├── generate-diverse-logs.sh  # Initial diverse log data
-│   ├── test-real-ssh.js     # SSH connectivity testing
-│   ├── production-test.js   # Production environment simulation
-│   ├── simulate-csv-report.js    # CSV report generation test
-│   ├── analyze_patterns.js       # Pattern analysis tool
-│   ├── check_search_patterns.js  # Search pattern validation
-│   └── comprehensive_pattern_analysis.js  # Comprehensive pattern testing
-└── sample-data/             # Sample data and test fixtures
-    ├── task_management_sample.xlsx  # Sample task management file
-    ├── log_collector_key*           # SSH authentication keys
-    └── mock_ssh_key.pem*           # Alternative SSH keys
+├── docker/                  # Dockerコンテナ化
+│   ├── Dockerfile           # コンテナイメージ定義
+│   ├── docker-compose.yml   # 3サーバークラスターオーケストレーション
+│   ├── setup-containers.sh  # コンテナ管理スクリプト
+│   ├── .env.example         # 環境設定テンプレート
+│   └── DEPLOYMENT_GUIDE.md  # 詳細なデプロイメント手順
+├── scripts/                 # テストと開発スクリプト
+│   ├── startup.sh           # コンテナ初期化スクリプト
+│   ├── generate-logs.sh     # 継続的ログ生成
+│   ├── generate-diverse-logs.sh  # 初期多様ログデータ
+│   ├── test-real-ssh.js     # SSH接続テスト
+│   ├── production-test.js   # 本番環境シミュレーション
+│   ├── simulate-csv-report.js    # CSVレポート生成テスト
+│   ├── analyze_patterns.js       # パターン分析ツール
+│   ├── check_search_patterns.js  # 検索パターン検証
+│   └── comprehensive_pattern_analysis.js  # 包括的パターンテスト
+└── sample-data/             # サンプルデータとテストフィクスチャ
+    ├── task_management_sample.xlsx  # サンプルタスク管理ファイル
+    ├── log_collector_key*           # SSH認証キー
+    └── mock_ssh_key.pem*           # 代替SSHキー
 
 ```
 
-## Quick Start
+## クイックスタート
 
-### Start Development Environment
+### 開発環境の起動
 
 ```bash
 cd dev-environment/docker
 ./setup-containers.sh start
 ```
 
-### Rebuild from Scratch
+### ゼロから再構築
 
 ```bash
 cd dev-environment/docker
 ./setup-containers.sh rebuild
 ```
 
-### Stop Environment
+### 環境の停止
 
 ```bash
 cd dev-environment/docker
 ./setup-containers.sh stop
 ```
 
-### Check Status
+### ステータス確認
 
 ```bash
 cd dev-environment/docker
 ./setup-containers.sh status
 ```
 
-## Container Architecture
+## コンテナアーキテクチャ
 
-The development environment creates a 3-server cluster:
+開発環境は3サーバークラスターを作成します：
 
-- **log-server1-issue15**: Port 5001 (SSH)
-- **log-server2-issue15**: Port 5002 (SSH)
-- **log-server3-issue15**: Port 5003 (SSH)
-- **log-client-issue15**: Test client container
+- **log-server1-issue15**: ポート5001 (SSH)
+- **log-server2-issue15**: ポート5002 (SSH)
+- **log-server3-issue15**: ポート5003 (SSH)
+- **log-client-issue15**: テストクライアントコンテナ
 
-All containers are connected via `log-collection-network` bridge.
+すべてのコンテナは `log-collection-network` ブリッジ経由で接続されています。
 
-## SSH Configuration
+## SSH設定
 
-### Default SSH Settings
+### デフォルトSSH設定
 
-- **User**: `logcollector`
-- **Authentication**: SSH key-based (no password)
-- **Key Location**: `sample-data/log_collector_key`
-- **Ports**: 5001, 5002, 5003 mapped to container port 22
+- **ユーザー**: `logcollector`
+- **認証**: SSH鍵ベース（パスワードなし）
+- **キー場所**: `sample-data/log_collector_key`
+- **ポート**: 5001, 5002, 5003がコンテナポート22にマップ
 
-### Manual SSH Connection Test
+### 手動SSH接続テスト
 
 ```bash
 ssh -i dev-environment/sample-data/log_collector_key -p 5001 logcollector@localhost
 ```
 
-## Log Generation
+## ログ生成
 
-Logs are automatically generated on container startup:
+コンテナ起動時にログが自動生成されます：
 
-- **Initial Logs**: Created by `generate-diverse-logs.sh`
-- **Continuous Logs**: Enabled via `CONTINUOUS_LOGS=true` environment variable
-- **Log Locations**:
-  - `/var/log/app/*.log` - Application logs
-  - `/tmp/logs/*.log` - Temporary logs
+- **初期ログ**: `generate-diverse-logs.sh` により作成
+- **継続的ログ**: 環境変数 `CONTINUOUS_LOGS=true` で有効化
+- **ログ保存場所**:
+  - `/var/log/app/*.log` - アプリケーションログ
+  - `/tmp/logs/*.log` - 一時ログ
 
-### Test Log Files
+### テストログファイル
 
-Small test log files are created in `/tmp/logs/test_sample.log` with controlled TrackIDs:
+小さなテストログファイルが `/tmp/logs/test_sample.log` に制御されたTrackIDで作成されます：
 
-- `SAMPLE001`: Single TrackID pattern (13 entries across 3 servers)
-- `MULTI001`, `MULTI002`: Multi-TrackID pattern (4 entries across 3 servers)
+- `SAMPLE001`: 単一TrackIDパターン（3サーバーで13エントリ）
+- `MULTI001`, `MULTI002`: 複数TrackIDパターン（3サーバーで4エントリ）
 
-## Testing Scripts
+## テストスクリプト
 
-### SSH Connectivity Test
+### SSH接続テスト
 
 ```bash
 cd dev-environment/scripts
 node test-real-ssh.js
 ```
 
-### Production Environment Simulation
+### 本番環境シミュレーション
 
 ```bash
 cd dev-environment/scripts
 node production-test.js
 ```
 
-### Pattern Analysis
+### パターン分析
 
 ```bash
 cd dev-environment/scripts
@@ -127,33 +127,33 @@ node check_search_patterns.js
 node comprehensive_pattern_analysis.js
 ```
 
-## Sample Data
+## サンプルデータ
 
-### Task Management Sample
+### タスク管理サンプル
 
-The file `sample-data/task_management_sample.xlsx` contains sample tasks:
+ファイル `sample-data/task_management_sample.xlsx` にはサンプルタスクが含まれています：
 
-| Task ID | Status | TrackID | Description |
-|---------|--------|---------|-------------|
-| INC001  | 情報収集中 | SAMPLE001 | Single TrackID test case |
-| INC002  | 情報収集中 | MULTI001, MULTI002 | Multi-TrackID test case |
-| INC003  | 対応完了 | N/A | Completed (not collected) |
+| タスクID | ステータス | TrackID | 説明 |
+|---------|-----------|---------|------|
+| INC001  | 情報収集中 | SAMPLE001 | 単一TrackIDテストケース |
+| INC002  | 情報収集中 | MULTI001, MULTI002 | 複数TrackIDテストケース |
+| INC003  | 対応完了 | N/A | 完了（収集対象外） |
 
-### SSH Keys
+### SSHキー
 
-Multiple SSH key pairs are provided for testing:
+テスト用に複数のSSHキーペアが提供されています：
 
-- `log_collector_key` / `log_collector_key_pem`: Main keys
-- `mock_ssh_key.pem`: Alternative keys
+- `log_collector_key` / `log_collector_key_pem`: メインキー
+- `mock_ssh_key.pem`: 代替キー
 
-**Note**: These are test keys only. **Do not use in production.**
+**注意**: これらはテスト専用キーです。**本番環境では使用しないでください。**
 
-## Environment Variables
+## 環境変数
 
-Configure via `.env` file (see `.env.example`):
+`.env` ファイルで設定（`.env.example` を参照）：
 
 ```bash
-# Server Configuration
+# サーバー設定
 SSH_HOST_1=localhost
 SSH_HOST_2=localhost
 SSH_HOST_3=localhost
@@ -162,85 +162,85 @@ SSH_PORT_2=5002
 SSH_PORT_3=5003
 SSH_USER=logcollector
 
-# Paths
+# パス
 SSH_KEY_PATH=./dev-environment/sample-data/log_collector_key
 INPUT_FOLDER=./client/examples
 OUTPUT_FOLDER=./client/output
 LOG_PATTERN_FILE=./client/examples/log-patterns.json
 
-# Log Generation
+# ログ生成
 CONTINUOUS_LOGS=true
 LOG_SERVER_ID=server1
 ```
 
-## Troubleshooting
+## トラブルシューティング
 
-### Containers Won't Start
+### コンテナが起動しない
 
 ```bash
-# Check Docker daemon
+# Dockerデーモンを確認
 docker ps
 
-# View container logs
+# コンテナログを表示
 docker logs log-server1-issue15
 
-# Rebuild completely
+# 完全に再構築
 cd dev-environment/docker
 ./setup-containers.sh rebuild
 ```
 
-### SSH Connection Failures
+### SSH接続失敗
 
 ```bash
-# Verify container SSH daemon
+# コンテナのSSHデーモンを確認
 docker exec log-server1-issue15 ps aux | grep ssh
 
-# Check SSH key permissions
+# SSHキーのパーミッションを確認
 ls -la dev-environment/sample-data/log_collector_key
 
-# Test SSH connection manually
+# SSH接続を手動でテスト
 ssh -v -i dev-environment/sample-data/log_collector_key -p 5001 logcollector@localhost
 ```
 
-### Port Conflicts
+### ポート競合
 
-If ports 5001-5003 are already in use:
+ポート5001-5003が既に使用されている場合：
 
-1. Edit `docker/docker-compose.yml`
-2. Change port mappings (e.g., `"5001:22"` → `"6001:22"`)
-3. Update environment variables accordingly
+1. `docker/docker-compose.yml` を編集
+2. ポートマッピングを変更（例：`"5001:22"` → `"6001:22"`）
+3. 環境変数を適宜更新
 
-## Production vs Development
+## 本番環境 vs 開発環境
 
-This development environment is **not for production use**:
+この開発環境は**本番環境での使用を想定していません**：
 
-- Uses test SSH keys
-- Disables some security features for convenience
-- Generates synthetic log data
-- Runs containers in non-secure mode
+- テスト用SSHキーを使用
+- 利便性のため一部のセキュリティ機能を無効化
+- 合成ログデータを生成
+- 非セキュアモードでコンテナを実行
 
-For production deployment, see:
+本番環境デプロイメントについては以下を参照：
 - `docker/DEPLOYMENT_GUIDE.md`
-- Main project `README.md`
-- Production setup examples in `scripts/production-setup-example.sh`
+- メインプロジェクトの `README.md`
+- `scripts/production-setup-example.sh` の本番環境セットアップ例
 
-## Next Steps
+## 次のステップ
 
-After setting up the dev environment:
+開発環境セットアップ後：
 
-1. Verify container health: `./setup-containers.sh status`
-2. Test SSH connectivity: `ssh -i ../sample-data/log_collector_key -p 5001 logcollector@localhost`
-3. Run log collection from main project: `cd ../../client && node log-collection-skill.js`
-4. Check generated reports: `ls -la client/output/`
+1. コンテナの健全性を確認: `./setup-containers.sh status`
+2. SSH接続をテスト: `ssh -i ../sample-data/log_collector_key -p 5001 logcollector@localhost`
+3. メインプロジェクトからログ収集を実行: `cd ../../client && node log-collection-skill.js`
+4. 生成されたレポートを確認: `ls -la client/output/`
 
-## Cleanup
+## クリーンアップ
 
-To completely remove the development environment:
+開発環境を完全に削除するには：
 
 ```bash
 cd dev-environment/docker
 ./setup-containers.sh clean
 
-# Optional: Remove sample data
+# オプション: サンプルデータを削除
 rm -rf dev-environment/sample-data/*
 ```

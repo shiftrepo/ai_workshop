@@ -1,75 +1,75 @@
-# Log Collector Tool - Production Client
+# ログ収集ツール - 本番環境用クライアント
 
-This directory contains the production-ready log collection system for Windows environments.
+このディレクトリには、Windows環境向けの本番環境対応ログ収集システムが含まれています。
 
-## 📁 Directory Structure
+## 📁 ディレクトリ構成
 
 ```
 client/
-├── log-collection-skill.js    # Main log collection script
-├── log-collection-csv.js       # CSV-focused variant
-├── package.json                # Node.js dependencies only
+├── log-collection-skill.js    # メインログ収集スクリプト
+├── log-collection-csv.js       # CSV出力版
+├── package.json                # Node.js依存関係のみ
 ├── examples/
-│   ├── log-patterns.json       # Log parsing patterns (required)
-│   └── task_management_sample.xlsx  # Sample task file
-├── output/                     # Generated reports (auto-created)
-└── README.md                   # This file
+│   ├── log-patterns.json       # ログ解析パターン（必須）
+│   └── task_management_sample.xlsx  # サンプルタスクファイル
+├── output/                     # 生成されたレポート（自動作成）
+└── README.md                   # このファイル
 ```
 
-## 🚀 Setup (Windows Environment)
+## 🚀 セットアップ（Windows環境）
 
-### 1. Install Node.js
-Download and install Node.js from https://nodejs.org/ (LTS version recommended)
+### 1. Node.jsのインストール
+https://nodejs.org/ からNode.jsをダウンロードしてインストール（LTS版推奨）
 
-### 2. Install Dependencies
+### 2. 依存関係のインストール
 ```cmd
 cd client
 npm install
 ```
 
-### 3. Prepare SSH Access
-- Obtain SSH private key file from server administrator
-- Note: username, server hostnames/IPs, and port numbers
+### 3. SSHアクセスの準備
+- サーバー管理者からSSH秘密鍵ファイルを取得
+- 注意：ユーザー名、サーバーホスト名/IP、ポート番号をメモ
 
-### 4. Prepare Task Management Files
-- Place Excel task files in `client/examples/` directory
-- Files should contain tasks with status "情報収集中" (Information Collecting)
+### 4. タスク管理ファイルの準備
+- `client/examples/` ディレクトリにExcelタスクファイルを配置
+- ファイルには「情報収集中」ステータスのタスクが含まれている必要があります
 
-## 📊 Usage (Windows)
+## 📊 使用方法（Windows）
 
-### Basic Execution
+### 基本的な実行
 ```cmd
-rem Set required environment variables
+rem 必要な環境変数を設定
 set SSH_KEY_PATH=C:\path\to\your\private_key
 set SSH_HOST_1=192.168.1.100
 set SSH_PORT_1=22
 set SSH_USER=logcollector
 
-rem Run log collection
+rem ログ収集を実行
 npm run log-collect
 ```
 
-### Multiple Servers
+### 複数サーバー
 ```cmd
 set SSH_KEY_PATH=C:\path\to\your\private_key
 set SSH_USER=logcollector
 
-rem Server 1
+rem サーバー1
 set SSH_HOST_1=192.168.1.100
 set SSH_PORT_1=22
 
-rem Server 2
+rem サーバー2
 set SSH_HOST_2=192.168.1.101
 set SSH_PORT_2=22
 
-rem Server 3
+rem サーバー3
 set SSH_HOST_3=192.168.1.102
 set SSH_PORT_3=22
 
 npm run log-collect
 ```
 
-### Custom Input/Output Directories
+### カスタム入出力ディレクトリ
 ```cmd
 set SSH_KEY_PATH=C:\path\to\private_key
 set SSH_HOST_1=192.168.1.100
@@ -81,76 +81,76 @@ set OUTPUT_FOLDER=C:\results
 npm run log-collect
 ```
 
-## 🔧 Configuration
+## 🔧 設定
 
-### Required Environment Variables
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `SSH_KEY_PATH` | Path to SSH private key | `C:\keys\id_rsa` |
-| `SSH_HOST_1` | Server 1 hostname/IP | `192.168.1.100` |
-| `SSH_PORT_1` | Server 1 SSH port | `22` |
-| `SSH_USER` | SSH username | `logcollector` |
+### 必須環境変数
+| 変数 | 説明 | 例 |
+|------|------|-----|
+| `SSH_KEY_PATH` | SSH秘密鍵のパス | `C:\keys\id_rsa` |
+| `SSH_HOST_1` | サーバー1のホスト名/IP | `192.168.1.100` |
+| `SSH_PORT_1` | サーバー1のSSHポート | `22` |
+| `SSH_USER` | SSHユーザー名 | `logcollector` |
 
-### Optional Environment Variables
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `INPUT_FOLDER` | Task file directory | `./examples` |
-| `OUTPUT_FOLDER` | Report output directory | `./output` |
-| `LOG_PATTERN_FILE` | Log pattern config | `./examples/log-patterns.json` |
-| `SSH_HOST_2` | Server 2 hostname/IP | (not set) |
-| `SSH_PORT_2` | Server 2 SSH port | (not set) |
-| `SSH_HOST_3` | Server 3 hostname/IP | (not set) |
-| `SSH_PORT_3` | Server 3 SSH port | (not set) |
+### オプション環境変数
+| 変数 | 説明 | デフォルト |
+|------|------|-----------|
+| `INPUT_FOLDER` | タスクファイルのディレクトリ | `./examples` |
+| `OUTPUT_FOLDER` | レポート出力ディレクトリ | `./output` |
+| `LOG_PATTERN_FILE` | ログパターン設定 | `./examples/log-patterns.json` |
+| `SSH_HOST_2` | サーバー2のホスト名/IP | （未設定） |
+| `SSH_PORT_2` | サーバー2のSSHポート | （未設定） |
+| `SSH_HOST_3` | サーバー3のホスト名/IP | （未設定） |
+| `SSH_PORT_3` | サーバー3のSSHポート | （未設定） |
 
-## 📝 Output Files
+## 📝 出力ファイル
 
-The system generates two types of reports in the `output/` directory:
+システムは `output/` ディレクトリに2種類のレポートを生成します：
 
-1. **Excel Report** (`log-collection-result_YYYY-MM-DD_HH-MM-SS.xlsx`)
-   - Summary sheet with task overview
-   - Detailed log entries with formatting
-   - Filterable columns
+1. **Excelレポート** (`log-collection-result_YYYY-MM-DD_HH-MM-SS.xlsx`)
+   - タスク概要を含むサマリーシート
+   - フォーマットされた詳細ログエントリ
+   - フィルター可能な列
 
-2. **CSV Report** (`log-collection-result_YYYY-MM-DD_HH-MM-SS.csv`)
-   - Plain text format
-   - Easy to import into other tools
-   - One log entry per row
+2. **CSVレポート** (`log-collection-result_YYYY-MM-DD_HH-MM-SS.csv`)
+   - プレーンテキスト形式
+   - 他のツールへのインポートが容易
+   - 1行に1つのログエントリ
 
-## ❗ Troubleshooting
+## ❗ トラブルシューティング
 
-### SSH Connection Failed
-1. Verify SSH_KEY_PATH is correct and file exists
-2. Test SSH manually: `ssh -i <key> -p <port> <user>@<host>`
-3. Check network connectivity to servers
-4. Verify SSH credentials with administrator
+### SSH接続失敗
+1. SSH_KEY_PATHが正しく、ファイルが存在することを確認
+2. SSHを手動でテスト: `ssh -i <key> -p <port> <user>@<host>`
+3. サーバーへのネットワーク接続を確認
+4. 管理者にSSH認証情報を確認
 
-### No Tasks Found
-1. Check INPUT_FOLDER contains Excel files
-2. Verify tasks have status "情報収集中"
-3. Ensure Excel files are not corrupted
+### タスクが見つからない
+1. INPUT_FOLDERにExcelファイルが含まれていることを確認
+2. タスクが「情報収集中」ステータスであることを確認
+3. Excelファイルが破損していないことを確認
 
-### No Logs Found
-1. Verify TrackIDs in task descriptions
-2. Check log-patterns.json configuration
-3. Confirm log files exist on servers
-4. Verify log file paths in configuration
+### ログが見つからない
+1. タスク説明にTrackIDがあることを確認
+2. log-patterns.json設定を確認
+3. サーバーにログファイルが存在することを確認
+4. 設定のログファイルパスを確認
 
-## 🔒 Security Notes
+## 🔒 セキュリティ注意事項
 
-- **Never commit SSH private keys** to version control
-- Store keys in secure location with restricted permissions
-- Rotate keys periodically per security policy
-- Use strong passwords/passphrases for key files
+- **SSH秘密鍵をコミットしない** バージョン管理に含めないこと
+- 制限された権限を持つ安全な場所にキーを保存
+- セキュリティポリシーに従って定期的にキーをローテーション
+- キーファイルに強力なパスワード/パスフレーズを使用
 
-## 📞 Support
+## 📞 サポート
 
-For production deployment support, contact your system administrator.
+本番環境デプロイメントのサポートについては、システム管理者にお問い合わせください。
 
-## 🧪 Development Environment
+## 🧪 開発環境
 
-Development and testing resources are located in `../dev-environment/`:
-- Docker containers for local testing
-- Sample SSH keys (for dev only)
-- Test scripts and utilities
+開発とテストのリソースは `../dev-environment/` にあります：
+- ローカルテスト用Dockerコンテナ
+- サンプルSSHキー（開発専用）
+- テストスクリプトとユーティリティ
 
-**Note**: The dev-environment is NOT needed for Windows production deployment.
+**注意**: dev-environmentはWindows本番環境デプロイメントには不要です。

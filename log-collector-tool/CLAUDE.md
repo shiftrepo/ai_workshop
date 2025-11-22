@@ -1,353 +1,419 @@
-# Log Collector Tool - Issue #15 Implementation
+# CLAUDE.md
 
-This repository contains a comprehensive log collection system implementing Issue #15 specifications for automated log gathering from multiple servers via SSH.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-The Log Collector Tool is a Node.js-based application that:
-- Reads Excel task management files to identify tasks with "情報収集中" (Information Collecting) status
-- Extracts TrackIDs, Program IDs, and timestamps from task descriptions using configurable patterns
-- Connects to multiple servers via SSH to search for relevant log entries
-- Generates comprehensive Excel or CSV reports with collected log data
-- Supports time-range filtering and advanced log pattern matching
+Log Collector Tool is a Node.js application that automates log collection from multiple servers via SSH. It reads Excel task management files (Japanese format), extracts TrackIDs and timestamps, connects to servers via SSH, searches for matching logs, and generates Excel/CSV reports.
+
+**Key Architecture**: Two-environment design separating production client code from development/testing infrastructure.
 
 ## Architecture
 
-**Multi-Server SSH Architecture:**
-- **Client**: Node.js application with SSH2 library for server connections
-- **Servers**: Docker containers running Alpine Linux with SSH daemon and log generation
-- **Pattern Engine**: Configurable JSON-based log pattern matching system
+**Production Architecture (Windows/Linux):**
+- **Client**: Pure Node.js application (no Docker required)
+- **Dependencies**: Only Node.js libraries (ssh2, exceljs, chalk)
+- **Configuration**: Environment variables only
+- **Deployment**: `client/` directory is self-contained production code
+
+**Development Architecture (Docker-based testing):**
+- **Servers**: 3 Alpine Linux containers with OpenSSH
+- **Testing**: Simulates production SSH environment locally
+- **Location**: `dev-environment/` (NOT needed for production)
+- **Pattern Engine**: Configurable JSON-based log pattern matching
 - **Output Engine**: Excel (ExcelJS) and CSV report generation
 
 ## Essential Commands
 
+### Production Execution (Windows/Linux)
+
 ```bash
-# Container Management
-./setup-containers.sh rebuild    # Clean rebuild of all containers
+# Navigate to client directory
+cd client
+
+# Install dependencies (first time only)
+npm install
+
+# Set environment variables (Windows example)
+set SSH_KEY_PATH=C:\path\to\private_key
+set SSH_HOST_1=192.168.1.100
+set SSH_PORT_1=22
+set SSH_USER=logcollector
+
+# Run log collection
+npm run log-collect           # Excel + CSV output
+npm run log-collect-csv       # CSV output only
+
+# Direct execution (for debugging)
+node log-collection-skill.js
+node log-collection-csv.js
+```
+
+### Development Environment (Docker)
+
+```bash
+# Navigate to docker directory
+cd dev-environment/docker
+
+# Container management
+./setup-containers.sh rebuild    # Clean rebuild all containers
 ./setup-containers.sh start      # Start existing containers
 ./setup-containers.sh stop       # Stop all containers
-./setup-containers.sh status     # Check container status
+./setup-containers.sh status     # Check container health
+./setup-containers.sh clean      # Complete cleanup
 
-# Development
-cd client
-npm install                      # Install dependencies
-npm test                         # Run Jest test suite (73 tests, 92%+ coverage)
-npm run log-collect              # Execute log collection skill
-npm run log-collect-csv          # Execute with CSV output
+# Test SSH connectivity
+cd ../scripts
+node test-real-ssh.js
 
-# Manual Testing
-node log-collection-skill.js     # Run main skill directly
-node log-collection-csv.js       # Run CSV version directly
+# Test with dev environment from client
+cd ../../client
+env SSH_KEY_PATH=../dev-environment/sample-data/log_collector_key \
+    SSH_HOST_1=localhost SSH_PORT_1=5001 \
+    SSH_HOST_2=localhost SSH_PORT_2=5002 \
+    SSH_HOST_3=localhost SSH_PORT_3=5003 \
+    SSH_USER=logcollector \
+    node log-collection-skill.js
 ```
 
-## Key Files and Architecture
+## Core Workflow
 
-### Core Implementation
-- **`client/log-collection-skill.js`**: Main log collection implementation
-- **`client/log-collection-csv.js`**: CSV output variant
-- **`client/package.json`**: Dependencies (ssh2, exceljs, jest)
+1. **Excel Input**: Read task management files from INPUT_FOLDER
+   - Expected columns (Japanese): インシデントID, タイムスタンプ, インシデント概要, 担当者, ステータス, 調査状況
+   - Filter tasks by status: "情報収集中" (Information Collecting)
 
-### Configuration
-- **`client/examples/log-patterns.json`**: Configurable regex patterns for log parsing
-- **`client/examples/task_management_sample.xlsx`**: Sample task management input
-- **`client/examples/mock_ssh_key.pem`**: SSH private key for server authentication
+2. **Pattern Extraction**: Use configurable regex from `log-patterns.json`
+   - Extract multiple TrackIDs per task (supports: `TrackID:`, `trackId=`, `[ID:]`, `#`, `(識別:)`)
+   - Extract Program IDs (e.g., AUTH101, DB503)
+   - Extract timestamps and calculate search time ranges (default: ±30 minutes)
 
-### Container Environment
-- **`Dockerfile`**: Alpine Linux + Node.js + SSH server configuration
-- **`docker-compose.yml`**: 3-server cluster + client configuration
-- **`client/startup.sh`**: Container initialization with SSH daemon setup
-- **`client/generate-logs.sh`**: Automated log generation with realistic data
+3. **SSH Collection**: Parallel connection to configured servers
+   - SSH2 library with key-based authentication
+   - Simultaneous grep execution across all servers
+   - Timeout management (30s connection, 60s search)
+   - Graceful error handling per server
 
-### Testing Infrastructure
-- **`tests/`**: Comprehensive Jest test suite
-  - Unit tests: Core functionality testing
-  - Integration tests: SSH connection and log parsing
-  - Mock implementations for offline development
-  - 92.17% statement coverage with 73 tests
+4. **Report Generation**: Create Excel and CSV reports
+   - Excel: Summary sheet + detailed log entries with formatting
+   - CSV: Single file with all log entries
+   - Output to OUTPUT_FOLDER with timestamp in filename
 
-## Issue #15 Implementation Details
+## Critical Configuration Files
 
-### Server Configuration (Ports as specified in Issue #15)
-```yaml
-Server Mapping:
-  log-server1 → localhost:5001 (SSH)
-  log-server2 → localhost:5002 (SSH)
-  log-server3 → localhost:5003 (SSH)
+### `client/log-collection-skill.js` - Main Implementation
+
+**Key Configuration** (lines 14-30):
+```javascript
+this.config = {
+    inputFolder: process.env.INPUT_FOLDER || './examples',
+    outputFolder: process.env.OUTPUT_FOLDER || './output',
+    sshKeyPath: process.env.SSH_KEY_PATH,  // Required - no default
+    servers: [
+        { id: 'server1', host: process.env.SSH_HOST_1, port: process.env.SSH_PORT_1, user: process.env.SSH_USER },
+        { id: 'server2', host: process.env.SSH_HOST_2, port: process.env.SSH_PORT_2, user: process.env.SSH_USER },
+        { id: 'server3', host: process.env.SSH_HOST_3, port: process.env.SSH_PORT_3, user: process.env.SSH_USER }
+    ].filter(s => s.host && s.port && s.user),  // Only include fully configured servers
+    logPaths: [
+        '/var/log/application.log',
+        '/var/log/app/*.log',
+        '/tmp/logs/*.log'
+    ]
+};
 ```
 
-### Log Pattern Configuration
+**Critical Methods**:
+- `extractIdentifiers()` (lines 218-283): Multi-pattern TrackID extraction
+- `connectToServer()` (lines 368-413): SSH2 connection with RSA key support
+- `searchServerLogs()` (lines 467-507): Grep-based log search
+- `parseLogOutput()` (lines 555-587): Raw log line parsing
+
+### `client/examples/log-patterns.json`
+
+Defines regex patterns for log parsing:
+
 ```json
 {
   "patterns": {
-    "trackId": { "pattern": "TrackID:\\s*([A-Z0-9]{3,10})", "flags": "gi" },
-    "programId": { "pattern": "\\b([A-Z]{2,6}\\d{2,4})\\b", "flags": "g" },
-    "timestamp": { "pattern": "(\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}:\\d{2})", "flags": "g" },
-    "logLevel": { "pattern": "\\b(DEBUG|INFO|WARN|WARNING|ERROR|FATAL|TRACE)\\b", "flags": "i" }
+    "trackId": {
+      "pattern": "(?:TrackID|trackId)[:\\s\"]*([A-Z0-9]{3,10})",
+      "flags": "gi"
+    },
+    "programId": {
+      "pattern": "\\b([A-Z]{2,6}\\d{2,4})\\b",
+      "flags": "g"
+    },
+    "timestamp": {
+      "pattern": "(\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}:\\d{2})",
+      "flags": "g"
+    }
   },
-  "timeRanges": { "defaultRange": 3600, "searchBefore": 1800, "searchAfter": 1800 }
+  "timeRanges": {
+    "searchBefore": 1800,   // 30 minutes before
+    "searchAfter": 1800     // 30 minutes after
+  }
 }
 ```
 
-### Task Processing Workflow
-1. **Excel Input**: Read task management files from `client/examples/`
-2. **Status Filtering**: Extract tasks with "情報収集中" status
-3. **Pattern Extraction**: Use configurable regex to find TrackIDs, timestamps
-4. **Time Range Calculation**: Create search windows around extracted timestamps
-5. **SSH Connection**: Connect to all configured servers simultaneously
-6. **Log Search**: Execute grep commands with time-based filtering
-7. **Report Generation**: Create Excel/CSV with structured results
+**Important**: Multiple TrackID patterns are hardcoded in `log-collection-skill.js` lines 232-239 for maximum compatibility.
 
-## Configuration Management
+### `dev-environment/scripts/startup.sh`
 
-### Environment Variables
+Container initialization script with critical SSH configuration:
+
+**Line 66-67**: Unlocks logcollector user account (required for OpenSSH 9.9)
 ```bash
-# Server Configuration
-SSH_HOST_1=localhost          # Server 1 hostname
-SSH_HOST_2=localhost          # Server 2 hostname
-SSH_HOST_3=localhost          # Server 3 hostname
-SSH_PORT_1=5001              # Server 1 SSH port (Issue #15 spec)
-SSH_PORT_2=5002              # Server 2 SSH port (Issue #15 spec)
-SSH_PORT_3=5003              # Server 3 SSH port (Issue #15 spec)
-SSH_USER=logcollector        # SSH username
-
-# Directory Configuration
-INPUT_FOLDER=./examples      # Excel files input directory
-OUTPUT_FOLDER=./output       # Report output directory
-SSH_KEY_PATH=./examples/mock_ssh_key.pem  # SSH private key
-LOG_PATTERN_FILE=./examples/log-patterns.json  # Pattern configuration
+passwd -u logcollector 2>/dev/null
 ```
 
-### Log Path Configuration
-```javascript
-logPaths: [
-  '/var/log/application.log',
-  '/var/log/app/*.log',
-  '/tmp/logs/*.log'
-]
-```
-
-## Testing Strategy
-
-### Coverage Requirements
-- **Target Coverage**: 92%+ statement coverage
-- **Test Count**: 73 tests across unit and integration suites
-- **Mock Strategy**: Comprehensive mocks for offline development
-
-### Test Categories
+**Lines 33-54**: Simplified sshd_config for modern OpenSSH compatibility
 ```bash
-# Unit Tests - Core Logic
-tests/unit/excel-processing.test.js     # Excel file reading and parsing
-tests/unit/pattern-extraction.test.js   # Regex pattern matching
-tests/unit/time-calculations.test.js    # Time range calculations
-
-# Integration Tests - SSH Operations
-tests/integration/ssh-connections.test.js  # Multi-server SSH connectivity
-tests/integration/log-search.test.js       # Server log searching
-tests/integration/report-generation.test.js # Excel/CSV output generation
-
-# End-to-End Tests
-tests/e2e/complete-workflow.test.js     # Full log collection workflow
+Port 22
+PermitRootLogin no
+PasswordAuthentication no
+PubkeyAuthentication yes
+PubkeyAcceptedAlgorithms +ssh-rsa,rsa-sha2-256,rsa-sha2-512
 ```
 
-### Test Execution
-```bash
-npm test                    # Run all tests with coverage
-npm run test:unit          # Unit tests only
-npm run test:integration   # Integration tests only
-npm run test:coverage      # Detailed coverage report
+## Environment Variables
+
+### Required (Production)
+
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `SSH_KEY_PATH` | SSH private key path | `/path/to/key` or `C:\keys\id_rsa` |
+| `SSH_HOST_1` | First server hostname/IP | `192.168.1.100` or `localhost` |
+| `SSH_PORT_1` | First server SSH port | `22` or `5001` |
+| `SSH_USER` | SSH username | `logcollector` |
+
+### Optional (Production)
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `SSH_HOST_2`, `SSH_HOST_3` | Additional servers | not set |
+| `SSH_PORT_2`, `SSH_PORT_3` | Additional server ports | not set |
+| `INPUT_FOLDER` | Task Excel file location | `./examples` |
+| `OUTPUT_FOLDER` | Report output directory | `./output` |
+| `LOG_PATTERN_FILE` | Pattern config file | `./examples/log-patterns.json` |
+
+### Development Environment
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `CONTINUOUS_LOGS` | Enable continuous log generation | `false` |
+| `LOG_SERVER_ID` | Server identifier for logs | `server1` |
+
+## Excel Task Management File Format
+
+Expected Excel structure (Japanese headers):
+
+| Column | Japanese | Purpose |
+|--------|----------|---------|
+| A | インシデントID | Task identifier (e.g., INC001) |
+| B | タイムスタンプ | Incident timestamp |
+| C | インシデント概要 | Description containing TrackIDs |
+| D | 担当者 | Assignee |
+| E | ステータス | Status (must be "情報収集中" for collection) |
+| F | 調査状況 | Investigation notes |
+
+**Sample Description with TrackIDs**:
 ```
-
-## Container Environment
-
-### SSH Server Configuration
-- **Authentication**: RSA key-based (no password auth)
-- **User**: `logcollector` (non-root user for log operations)
-- **Daemon**: OpenSSH server running on port 22 (mapped externally)
-- **Startup**: Automatic SSH daemon initialization via startup.sh
-
-### Log Generation
-- **Continuous Mode**: Real-time log generation with realistic patterns
-- **Batch Mode**: Initial log data population on container startup
-- **Data Patterns**: TrackIDs, Program IDs, timestamps, log levels matching search patterns
-
-### Volume Management
-```yaml
-Persistent Volumes:
-  log-server1-data: /var/log/app
-  log-server1-tmp:  /tmp/logs
-  client-output:    /app/client/output
-  client-examples:  /app/client/examples
+Sample test entry 1 TrackID: SAMPLE001
+Multi-TrackID entry TrackID: MULTI001 TrackID: MULTI002
 ```
 
 ## Common Development Workflows
 
 ### Initial Setup
+
 ```bash
-# 1. Clone and setup
+# 1. Clone repository
 git clone <repository>
 cd log-collector-tool
 
-# 2. Build container environment
+# 2. Setup production client
+cd client
+npm install
+
+# 3. Setup development environment (optional for testing)
+cd ../dev-environment/docker
 ./setup-containers.sh rebuild
 
-# 3. Install client dependencies
-cd client && npm install
-
-# 4. Run tests
-npm test
-
-# 5. Execute log collection
-npm run log-collect
+# 4. Verify container health
+./setup-containers.sh status
 ```
 
-### Development Iteration
+### Testing Changes
+
 ```bash
-# 1. Make code changes
-# 2. Run tests
-npm test
-
-# 3. Test with containers
+# 1. Start dev environment
+cd dev-environment/docker
 ./setup-containers.sh start
-npm run log-collect
 
-# 4. Check output
+# 2. Test SSH connectivity
+cd ../scripts
+node test-real-ssh.js
+
+# 3. Run log collection against dev servers
+cd ../../client
+env SSH_KEY_PATH=../dev-environment/sample-data/log_collector_key \
+    SSH_HOST_1=localhost SSH_PORT_1=5001 \
+    SSH_HOST_2=localhost SSH_PORT_2=5002 \
+    SSH_HOST_3=localhost SSH_PORT_3=5003 \
+    SSH_USER=logcollector \
+    node log-collection-skill.js
+
+# 4. Verify output
 ls -la output/
 ```
 
 ### Debugging SSH Issues
-```bash
-# Check container status
-./setup-containers.sh status
 
-# Inspect SSH connectivity
+```bash
+# Check container SSH daemon
 docker exec log-server1-issue15 ps aux | grep ssh
+
+# View SSH daemon logs
 docker logs log-server1-issue15
 
-# Test SSH connection manually
-ssh -i client/examples/mock_ssh_key.pem -p 5001 logcollector@localhost
+# Test manual SSH connection
+ssh -v -i dev-environment/sample-data/log_collector_key -p 5001 logcollector@localhost
+
+# Restart SSH daemon with debug mode
+docker exec log-server1-issue15 /usr/sbin/sshd -ddd
 ```
-
-## Performance Considerations
-
-### Concurrent Operations
-- **Parallel SSH**: Simultaneous connections to all servers
-- **Async Processing**: Non-blocking log search operations
-- **Timeout Management**: 30-second connection timeouts
-- **Error Handling**: Graceful degradation on server failures
-
-### Resource Management
-```javascript
-Connection Limits:
-  - Max concurrent SSH connections: 3 (one per server)
-  - SSH timeout: 30 seconds
-  - Log search timeout: 60 seconds per server
-  - Memory usage: ~50MB per active connection
-```
-
-## Security Implementation
-
-### SSH Security
-- **Key-based Authentication**: RSA 2048-bit keys (no passwords)
-- **User Isolation**: Non-root `logcollector` user
-- **Connection Encryption**: Standard SSH encryption (AES256-CTR)
-- **Host Key Verification**: Disabled for containerized environment
-
-### Input Validation
-- **Excel File Validation**: Format and structure verification
-- **Pattern Sanitization**: Regex injection prevention
-- **Path Traversal Protection**: Input sanitization for file paths
 
 ## Troubleshooting Guide
 
-### Common Issues
+### SSH Connection Failures
 
-**SSH Connection Failures:**
+**Symptom**: "Connection reset by peer", "ECONNRESET", "All configured authentication methods failed"
+
+**Causes**:
+- SSH daemon not running in container
+- SSH key permissions incorrect (must be 600)
+- logcollector account locked (OpenSSH 9.9 issue)
+- RSA key algorithm not accepted
+
+**Solutions**:
 ```bash
-# Symptoms: "Connection reset by peer", "ECONNRESET"
-# Causes: SSH daemon not running, key authentication failure
-# Solutions:
-docker logs log-server1-issue15  # Check SSH daemon status
-./setup-containers.sh rebuild   # Rebuild containers with fresh SSH setup
+# Fix container SSH daemon
+docker exec log-server1-issue15 /usr/sbin/sshd
+
+# Fix SSH key permissions
+chmod 600 /path/to/ssh/key
+
+# Unlock logcollector account (in container startup.sh line 66)
+passwd -u logcollector
+
+# Add RSA algorithm support (in sshd_config line 38)
+PubkeyAcceptedAlgorithms +ssh-rsa,rsa-sha2-256,rsa-sha2-512
 ```
 
-**Pattern Matching Issues:**
+### No Tasks Found
+
+**Symptom**: "No tasks found with '情報収集中' status"
+
+**Causes**:
+- Excel file not in INPUT_FOLDER
+- Status column not exactly "情報収集中" (character-perfect match required)
+- Excel file corrupted or wrong format
+
+**Solutions**:
 ```bash
-# Symptoms: No log entries found despite data existence
-# Causes: Incorrect regex patterns, encoding issues
-# Solutions:
-# - Verify log-patterns.json syntax
-# - Test patterns with sample data
-# - Check log file encoding
+# Verify INPUT_FOLDER contains .xlsx files
+ls -la client/examples/*.xlsx
+
+# Check Excel file manually for exact status text
+# Use client/examples/task_management_sample.xlsx as reference
 ```
 
-**Excel Processing Errors:**
+### No Log Entries Found
+
+**Symptom**: "Total 0 log entries found"
+
+**Causes**:
+- TrackID not present in server logs
+- Log path configuration doesn't match server log locations
+- Time range calculation excludes relevant logs
+- Pattern regex doesn't match log format
+
+**Solutions**:
 ```bash
-# Symptoms: Cannot read Excel files, parsing failures
-# Causes: File corruption, unsupported Excel format
-# Solutions:
-# - Verify Excel file format (.xlsx/.xls)
-# - Check file permissions
-# - Validate file structure matches expected schema
+# Test TrackID exists on server
+ssh -i key -p 5001 user@host "grep SAMPLE001 /tmp/logs/*.log"
+
+# Verify log paths in log-collection-skill.js line 25-28
+logPaths: ['/var/log/application.log', '/var/log/app/*.log', '/tmp/logs/*.log']
+
+# Adjust time range in log-patterns.json
+"timeRanges": { "searchBefore": 3600, "searchAfter": 3600 }  # 1 hour
+
+# Test pattern matching
+cd dev-environment/scripts
+node check_search_patterns.js
 ```
 
-### Performance Optimization
-- **Parallel Processing**: Default behavior for server connections
-- **Pattern Caching**: Compiled regex patterns cached for reuse
-- **Connection Pooling**: Reuse SSH connections when possible
-- **Output Streaming**: Large Excel files written incrementally
+### Pattern Extraction Issues
 
-## Integration Patterns
+**Symptom**: TrackIDs not extracted from task descriptions
 
-### External Systems
-- **Task Management**: Excel-based input from external systems
-- **Log Servers**: SSH-accessible Unix/Linux systems
-- **Reporting**: Excel/CSV output compatible with business tools
+**Causes**:
+- TrackID format doesn't match any of the 5 supported patterns
+- Encoding issues in Excel file (BOM, special characters)
 
-### API Extensions
+**Solutions**:
 ```javascript
-// Potential REST API endpoints for integration
-GET  /api/logs/collect/:taskId     // Trigger collection for specific task
-POST /api/logs/search              // Custom log search with parameters
-GET  /api/logs/reports             // List available reports
-GET  /api/logs/reports/:id         // Download specific report
+// Check supported patterns in log-collection-skill.js lines 232-239:
+// 1. TrackID:\s*([A-Z0-9]{3,10})
+// 2. trackId=([A-Z0-9]{3,10})
+// 3. \[ID:\s*([A-Z0-9]{3,10})\]
+// 4. #([A-Z0-9]{3,10})
+// 5. \(識別:\s*([A-Z0-9]{3,10})\)
+
+// Test extraction
+cd dev-environment/scripts
+node analyze_patterns.js
 ```
 
-## Version History and Issue #15 Compliance
+## Performance Characteristics
 
-### Issue #15 Requirements ✅
-- [x] Multi-server SSH log collection
-- [x] Excel task management file processing
-- [x] TrackID and timestamp extraction
-- [x] Configurable log patterns (log-patterns.json)
-- [x] Time-range based searching
-- [x] Excel report generation with summary and details
-- [x] CSV output alternative
-- [x] Container-based test environment
-- [x] Port mapping (5001, 5002, 5003) as specified
-- [x] Real SSH implementation (no mocks)
+- **Parallel Operations**: All servers connected simultaneously
+- **Timeout Management**: 30s connection timeout, 60s search timeout per server
+- **Memory Usage**: ~50MB per active SSH connection
+- **Typical Collection Time**: 10-30 seconds for 3 servers with 20-50 log entries
+- **Scalability**: Designed for up to 3 servers (can be extended by adding SSH_HOST_4+)
 
-### Implementation Status
-- **Core Functionality**: ✅ Complete
-- **Testing Framework**: ✅ 92%+ coverage achieved
-- **Container Environment**: ✅ 3-server cluster operational
-- **Documentation**: ✅ Comprehensive coverage
-- **CSV Enhancement**: ✅ Alternative output format implemented
+## Security Considerations
 
-## Future Enhancements
+### Production Deployment
 
-### Potential Improvements
-- **Web Interface**: Browser-based task management and report viewing
-- **Real-time Processing**: Live log streaming and analysis
-- **Advanced Patterns**: Machine learning-based log pattern recognition
-- **Scalability**: Kubernetes deployment for production environments
-- **Authentication**: Integration with enterprise SSO systems
+- **SSH Keys**: Use dedicated keys with 600 permissions, never commit to git
+- **SSH User**: Use non-root user with minimal permissions (read-only access to log files)
+- **Network**: Ensure SSH connections over secure internal network
+- **Key Rotation**: Rotate SSH keys periodically per security policy
+- **Audit Trail**: All collections logged to console with timestamps
 
-### Monitoring and Observability
-- **Health Checks**: Container and SSH connection monitoring
-- **Performance Metrics**: Collection time, success rates, error tracking
-- **Alerting**: Failed collection notifications
-- **Audit Trail**: Complete operation logging and tracking
+### Development Environment
 
----
+⚠️ **WARNING**: Development SSH keys in `dev-environment/sample-data/` are for TESTING ONLY.
 
-**Note**: This tool implements the complete Issue #15 specification with emphasis on reliability, testability, and maintainability. The containerized environment ensures consistent behavior across different deployment scenarios while maintaining security best practices.
+**Never use these keys in production**:
+- `log_collector_key` / `log_collector_key.pub`
+- `log_collector_key_pem`
+- `mock_ssh_key.pem` / `mock_ssh_key.pem.pub`
+
+## Issue #15 Implementation Notes
+
+This codebase implements Issue #15 specifications:
+- Multi-server SSH log collection ✅
+- Excel task management file processing ✅
+- Configurable regex patterns via JSON ✅
+- Time-range based searching ✅
+- Excel + CSV report generation ✅
+- Docker-based test environment ✅
+- Port mapping (5001, 5002, 5003) ✅
+- Windows production compatibility ✅
+
+**Key Commits**:
+- Initial implementation: SHA e0a2369
+- Windows production support + SSH fixes: SHA 8f1309c (feat: Issue #15 完全実装)

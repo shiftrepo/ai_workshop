@@ -1,64 +1,64 @@
-# Log Collector Tool
+# ログ収集ツール
 
-A powerful log collection tool for gathering logs from multiple servers via SSH, designed for on-premise Linux environments.
+SSH経由で複数サーバーからログを収集する強力なツール。オンプレミスLinux環境向けに設計されています。
 
-## Overview
+## 概要
 
-The Log Collector Tool automates log collection from multiple servers based on task management data:
+ログ収集ツールは、タスク管理データに基づいて複数サーバーからのログ収集を自動化します：
 
-- Reads Excel task management files to identify tasks requiring log collection
-- Extracts TrackIDs, Program IDs, and timestamps using configurable regex patterns
-- Connects to multiple servers via SSH simultaneously
-- Searches for relevant log entries within calculated time ranges
-- Generates comprehensive Excel and CSV reports
+- Excelタスク管理ファイルを読み込み、ログ収集が必要なタスクを識別
+- 設定可能な正規表現パターンを使用してTrackID、プログラムID、タイムスタンプを抽出
+- 複数サーバーに同時SSH接続
+- 計算された時間範囲内の関連ログエントリを検索
+- 包括的なExcelおよびCSVレポートを生成
 
-## Project Structure
+## プロジェクト構成
 
 ```
 log-collector-tool/
-├── client/                      # Core application (production-ready)
-│   ├── log-collection-skill.js  # Main log collection script
-│   ├── log-collection-csv.js    # CSV-focused variant
-│   ├── excel-to-csv.js          # Excel to CSV converter
-│   ├── examples/                # Configuration and patterns
-│   │   ├── log-patterns.json    # Regex patterns for log parsing
-│   │   └── task_management_sample.xlsx  # Sample input
-│   ├── output/                  # Generated reports
-│   └── package.json             # Dependencies
+├── client/                      # コアアプリケーション（本番環境対応）
+│   ├── log-collection-skill.js  # メインログ収集スクリプト
+│   ├── log-collection-csv.js    # CSV出力版
+│   ├── excel-to-csv.js          # Excel to CSV コンバーター
+│   ├── examples/                # 設定とパターン
+│   │   ├── log-patterns.json    # ログ解析用正規表現パターン
+│   │   └── task_management_sample.xlsx  # サンプル入力
+│   ├── output/                  # 生成されたレポート
+│   └── package.json             # 依存関係
 │
-├── dev-environment/             # Development and testing (not for production)
-│   ├── docker/                  # Container orchestration
-│   │   ├── Dockerfile           # Container definition
-│   │   ├── docker-compose.yml   # 3-server cluster
-│   │   ├── setup-containers.sh  # Container management
-│   │   └── DEPLOYMENT_GUIDE.md  # Deployment instructions
-│   ├── scripts/                 # Test and dev scripts
-│   │   ├── startup.sh           # Container initialization
-│   │   ├── generate-logs.sh     # Log generation
-│   │   └── test-real-ssh.js     # SSH testing
-│   ├── sample-data/             # Test fixtures and SSH keys
+├── dev-environment/             # 開発とテスト（本番環境では不要）
+│   ├── docker/                  # コンテナオーケストレーション
+│   │   ├── Dockerfile           # コンテナ定義
+│   │   ├── docker-compose.yml   # 3サーバークラスター
+│   │   ├── setup-containers.sh  # コンテナ管理
+│   │   └── DEPLOYMENT_GUIDE.md  # デプロイメント手順
+│   ├── scripts/                 # テストと開発スクリプト
+│   │   ├── startup.sh           # コンテナ初期化
+│   │   ├── generate-logs.sh     # ログ生成
+│   │   └── test-real-ssh.js     # SSHテスト
+│   ├── sample-data/             # テストフィクスチャとSSHキー
 │   │   ├── task_management_sample.xlsx
-│   │   └── log_collector_key*   # SSH keys (test only)
-│   └── README.md                # Development environment guide
+│   │   └── log_collector_key*   # SSHキー（テスト専用）
+│   └── README.md                # 開発環境ガイド
 │
-├── CLAUDE.md                    # AI assistant guidance
-└── README.md                    # This file
+├── CLAUDE.md                    # AI アシスタントガイダンス
+└── README.md                    # このファイル
 ```
 
-## Quick Start
+## クイックスタート
 
-### Production Use
+### 本番環境での使用
 
-1. **Install dependencies:**
+1. **依存関係のインストール:**
 
 ```bash
 cd client
 npm install
 ```
 
-2. **Configure SSH and patterns:**
+2. **SSHとパターンの設定:**
 
-Create `.env` file or set environment variables:
+`.env` ファイルを作成するか、環境変数を設定：
 
 ```bash
 export SSH_HOST_1=your-server1.com
@@ -74,44 +74,44 @@ export OUTPUT_FOLDER=./output
 export LOG_PATTERN_FILE=./examples/log-patterns.json
 ```
 
-3. **Prepare task management file:**
+3. **タスク管理ファイルの準備:**
 
-Place your Excel task management file in the input folder with columns:
+入力フォルダーにExcelタスク管理ファイルを配置（以下の列が必要）：
 - インシデントID (Incident ID)
 - タイムスタンプ (Timestamp)
 - インシデント概要 (Description with TrackIDs)
-- ステータス (Status - must be "情報収集中" for collection)
+- ステータス (Status - 収集対象は「情報収集中」)
 
-4. **Run log collection:**
+4. **ログ収集の実行:**
 
 ```bash
 cd client
 node log-collection-skill.js
 ```
 
-### Development/Testing
+### 開発・テスト
 
-For development and testing with Docker containers:
+Dockerコンテナを使用した開発・テスト環境：
 
 ```bash
 cd dev-environment/docker
 ./setup-containers.sh start
 ```
 
-See `dev-environment/README.md` for detailed development environment documentation.
+詳細は `dev-environment/README.md` を参照してください。
 
-## Core Features
+## 主要機能
 
-### Multi-Server SSH Collection
+### 複数サーバーSSH収集
 
-- Connects to multiple servers simultaneously
-- Key-based authentication
-- Parallel log search operations
-- Graceful error handling per server
+- 複数サーバーへの同時接続
+- 鍵ベース認証
+- 並列ログ検索操作
+- サーバーごとのエラーハンドリング
 
-### Pattern-Based Extraction
+### パターンベース抽出
 
-Configurable regex patterns in `log-patterns.json`:
+`log-patterns.json` で設定可能な正規表現パターン：
 
 ```json
 {
@@ -130,49 +130,49 @@ Configurable regex patterns in `log-patterns.json`:
     }
   },
   "timeRanges": {
-    "searchBefore": 1800,  # 30 minutes before
-    "searchAfter": 1800    # 30 minutes after
+    "searchBefore": 1800,  # 30分前
+    "searchAfter": 1800    # 30分後
   }
 }
 ```
 
-### Report Generation
+### レポート生成
 
-Generates both Excel and CSV reports with:
-- Task ID
+ExcelとCSVの両形式でレポート生成：
+- タスクID
 - TrackID
-- Program ID
-- Server name
-- Timestamp
-- Log level
-- Log path
-- Full log content
+- プログラムID
+- サーバー名
+- タイムスタンプ
+- ログレベル
+- ログパス
+- 完全なログ内容
 
-## Configuration
+## 設定
 
-### Environment Variables
+### 環境変数
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SSH_HOST_*` | Server hostnames | localhost |
-| `SSH_PORT_*` | SSH ports | 5001, 5002, 5003 |
-| `SSH_USER` | SSH username | logcollector |
-| `SSH_KEY_PATH` | Path to SSH private key | ./examples/log_collector_key |
-| `INPUT_FOLDER` | Task management file location | ./examples |
-| `OUTPUT_FOLDER` | Report output directory | ./output |
-| `LOG_PATTERN_FILE` | Pattern configuration file | ./examples/log-patterns.json |
+| 変数 | 説明 | デフォルト |
+|------|------|-----------|
+| `SSH_HOST_*` | サーバーホスト名 | localhost |
+| `SSH_PORT_*` | SSHポート | 5001, 5002, 5003 |
+| `SSH_USER` | SSHユーザー名 | logcollector |
+| `SSH_KEY_PATH` | SSH秘密鍵のパス | ./examples/log_collector_key |
+| `INPUT_FOLDER` | タスク管理ファイルの場所 | ./examples |
+| `OUTPUT_FOLDER` | レポート出力ディレクトリ | ./output |
+| `LOG_PATTERN_FILE` | パターン設定ファイル | ./examples/log-patterns.json |
 
-### Log Pattern Configuration
+### ログパターン設定
 
-Edit `client/examples/log-patterns.json` to customize:
-- TrackID extraction patterns
-- Program ID patterns
-- Timestamp formats
-- Time range windows for search
+`client/examples/log-patterns.json` を編集してカスタマイズ：
+- TrackID抽出パターン
+- プログラムIDパターン
+- タイムスタンプフォーマット
+- 検索用時間範囲ウィンドウ
 
-### Server Log Paths
+### サーバーログパス
 
-Configure in `log-collection-skill.js`:
+`log-collection-skill.js` で設定：
 
 ```javascript
 logPaths: [
@@ -182,124 +182,124 @@ logPaths: [
 ]
 ```
 
-## Output Format
+## 出力形式
 
-### Excel Report
+### Excelレポート
 
-- **Summary Sheet**: Task overview with total log counts
-- **Detail Sheets**: Per-task log entries with full context
-- Formatted with headers and filters
+- **サマリーシート**: 総ログ件数を含むタスク概要
+- **詳細シート**: タスクごとの完全なコンテキストを含むログエントリ
+- ヘッダーとフィルター付きでフォーマット
 
-### CSV Report
+### CSVレポート
 
-Single CSV file with all log entries:
+すべてのログエントリを含む単一CSVファイル：
 
 ```csv
 Task ID,TrackID,Program ID,Server,Timestamp,Log Level,Log Path,Content
 INC001,ABC123,AUTH101,server1,2025-11-22 10:30:00,ERROR,/var/log/app.log,"Full log entry..."
 ```
 
-## Requirements
+## 必要要件
 
-### Production Environment
+### 本番環境
 
-- Node.js 14.x or higher
-- SSH access to target servers
-- SSH private key for authentication
-- Excel task management files (.xlsx)
+- Node.js 14.x以上
+- ターゲットサーバーへのSSHアクセス
+- 認証用SSH秘密鍵
+- Excelタスク管理ファイル (.xlsx)
 
-### Development Environment
+### 開発環境
 
-Additional requirements for dev/test:
-- Docker or Podman
+開発・テスト用の追加要件：
+- DockerまたはPodman
 - Docker Compose
-- 8GB RAM recommended
-- Ports 5001-5003 available
+- 推奨8GB RAM
+- ポート5001-5003が利用可能
 
-## Dependencies
+## 依存関係
 
-Core dependencies (automatically installed):
-- `exceljs`: Excel file processing
-- `ssh2`: SSH client for server connections
-- `chalk`: Console output formatting (optional)
+コア依存関係（自動インストール）：
+- `exceljs`: Excelファイル処理
+- `ssh2`: サーバー接続用SSHクライアント
+- `chalk`: コンソール出力フォーマット（オプション）
 
-## Security Considerations
+## セキュリティ考慮事項
 
-### Production Deployment
+### 本番環境デプロイメント
 
-- **SSH Keys**: Use dedicated SSH keys with restricted permissions
-- **User Permissions**: Use non-root SSH user with minimal log read permissions
-- **Network Security**: Ensure SSH connections are over secure networks
-- **Key Management**: Never commit SSH private keys to repositories
-- **Input Validation**: Task management files are validated before processing
+- **SSHキー**: 制限された権限を持つ専用SSHキーを使用
+- **ユーザー権限**: 最小限のログ読み取り権限を持つ非rootSSHユーザーを使用
+- **ネットワークセキュリティ**: セキュアなネットワーク経由でのSSH接続を確保
+- **キー管理**: SSH秘密鍵をリポジトリにコミットしない
+- **入力検証**: 処理前にタスク管理ファイルを検証
 
-### Development Environment
+### 開発環境
 
-⚠️ **Development keys in `dev-environment/sample-data/` are for testing only!**
+⚠️ **`dev-environment/sample-data/` の開発用キーはテスト専用です！**
 
-Never use these keys in production:
+本番環境では以下のキーを使用しないでください：
 - `log_collector_key*`
 - `mock_ssh_key.pem*`
 
-## Troubleshooting
+## トラブルシューティング
 
-### SSH Connection Failures
+### SSH接続失敗
 
 ```bash
-# Test SSH connectivity manually
+# SSH接続を手動でテスト
 ssh -i /path/to/key -p PORT user@host
 
-# Check SSH key permissions (must be 600)
+# SSHキーのパーミッションを確認（600である必要があります）
 chmod 600 /path/to/ssh/key
 
-# Verify user has log read permissions on target servers
+# ターゲットサーバーでユーザーがログ読み取り権限を持つことを確認
 ssh -i /path/to/key -p PORT user@host "ls -la /var/log/app/"
 ```
 
-### No Logs Found
+### ログが見つからない
 
-- Verify TrackID exists in server logs: `grep "TrackID" /var/log/app/*.log`
-- Check time range calculation in output
-- Verify log path configuration matches server setup
-- Check log pattern regex in `log-patterns.json`
+- サーバーログにTrackIDが存在することを確認: `grep "TrackID" /var/log/app/*.log`
+- 出力の時間範囲計算を確認
+- ログパス設定がサーバー設定と一致することを確認
+- `log-patterns.json` のログパターン正規表現を確認
 
-### Excel Processing Errors
+### Excel処理エラー
 
-- Verify Excel file format is .xlsx
-- Check column names match expected Japanese headers
-- Ensure "情報収集中" status is exact (including characters)
+- Excelファイル形式が.xlsxであることを確認
+- 列名が期待される日本語ヘッダーと一致することを確認
+- 「情報収集中」ステータスが正確であることを確認（文字を含む）
 
-## Performance
+## パフォーマンス
 
-- **Parallel Operations**: Connects to all servers simultaneously
-- **Timeout Management**: 30-second SSH connection timeout, 60-second search timeout
-- **Memory Usage**: ~50MB per active SSH connection
-- **Typical Collection Time**: 10-30 seconds for 3 servers with 20-50 log entries
+- **並列操作**: すべてのサーバーに同時接続
+- **タイムアウト管理**: SSH接続タイムアウト30秒、検索タイムアウト60秒
+- **メモリ使用量**: アクティブなSSH接続あたり約50MB
+- **典型的な収集時間**: 20-50ログエントリの3サーバーで10-30秒
 
-## Limitations
+## 制限事項
 
-- Maximum 3 servers configured (can be extended by modifying code)
-- Excel files must follow Japanese task management format
-- SSH key-based authentication only (no password auth)
-- Log files must be text-based and grep-searchable
+- 最大3サーバー設定（コード修正で拡張���能）
+- Excelファイルは日本語タスク管理フォーマットに従う必要があります
+- SSH鍵ベース認証のみ（パスワード認証不可）
+- ログファイルはテキストベースでgrep検索可能である必要があります
 
-## Examples
+## 使用例
 
-### Basic Collection
+### 基本的な収集
 
 ```bash
 cd client
 node log-collection-skill.js
 ```
 
-### CSV Output Only
+### CSV出力のみ
 
 ```bash
 cd client
 node log-collection-csv.js
 ```
 
-### Custom Configuration
+### カスタム設定
 
 ```bash
 cd client
@@ -309,22 +309,22 @@ OUTPUT_FOLDER=/path/to/reports \
 node log-collection-skill.js
 ```
 
-## Development
+## 開発
 
-See `dev-environment/README.md` for:
-- Development environment setup
-- Container management
-- Test script usage
-- Sample data generation
-- SSH connectivity testing
+以下については `dev-environment/README.md` を参照：
+- 開発環境セットアップ
+- コンテナ管理
+- テストスクリプト使用方法
+- サンプルデータ生成
+- SSH接続テスト
 
-## License
+## ライセンス
 
 ISC
 
-## Support
+## サポート
 
-For issues and questions:
-1. Check `CLAUDE.md` for AI assistant context
-2. Review `dev-environment/README.md` for development setup
-3. See `dev-environment/docker/DEPLOYMENT_GUIDE.md` for deployment details
+問題や質問については：
+1. AIアシスタントコンテキストについては `CLAUDE.md` を確認
+2. 開発セットアップについては `dev-environment/README.md` を確認
+3. デプロイメント詳細については `dev-environment/docker/DEPLOYMENT_GUIDE.md` を確認
