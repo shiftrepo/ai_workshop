@@ -78,7 +78,7 @@ class ProductionDeploymentTest {
             'package.json',
             'examples/log-patterns.json',
             'examples/task_management_sample.xlsx',
-            'examples/mock_ssh_key.pem'
+            'examples/log_collector_key'
         ];
 
         for (const file of requiredFiles) {
@@ -157,7 +157,7 @@ class ProductionDeploymentTest {
         // ファイル権限（Linux/macOS）
         if (process.platform !== 'win32') {
             try {
-                const keyFile = path.join(__dirname, 'examples/mock_ssh_key.pem');
+                const keyFile = path.join(__dirname, 'examples/log_collector_key');
                 const stats = await fs.stat(keyFile);
                 const mode = (stats.mode & parseInt('777', 8)).toString(8);
                 this.logTest('SSH鍵ファイル権限',
@@ -230,7 +230,7 @@ class ProductionDeploymentTest {
         console.log('\n🔒 7. セキュリティチェック');
 
         // SSH鍵ファイルの存在確認
-        const sshKeyPath = path.join(__dirname, 'examples/mock_ssh_key.pem');
+        const sshKeyPath = path.join(__dirname, 'examples/log_collector_key');
         try {
             const keyContent = await fs.readFile(sshKeyPath, 'utf8');
             this.logTest('SSH秘密鍵形式',

@@ -17,7 +17,7 @@ class RealSSHTest {
                 { id: 'server2', host: 'localhost', port: 5002, user: 'logcollector' },
                 { id: 'server3', host: 'localhost', port: 5003, user: 'logcollector' }
             ],
-            sshKeyPath: path.resolve('./examples/mock_ssh_key.pem')
+            sshKeyPath: path.resolve('./examples/log_collector_key')
         };
         this.testResults = [];
         this.totalTests = 0;

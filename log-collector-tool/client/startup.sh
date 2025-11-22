@@ -5,13 +5,13 @@
 
 echo "🚀 Starting Issue #15 Log Collection Container..."
 
-# Generate initial batch logs (as logcollector user)
-echo "📊 Generating initial log data..."
-su logcollector -c "/app/client/generate-logs.sh batch"
+# Generate initial diverse logs (as logcollector user)
+echo "📊 Generating diverse log data for server $(hostname)..."
+su logcollector -c "/app/client/generate-diverse-logs.sh"
 
 # Check if continuous log generation is requested
 if [ "$CONTINUOUS_LOGS" = "true" ]; then
-    echo "🔄 Starting continuous log generation..."
+    echo "🔄 Starting continuous diverse log generation..."
     su logcollector -c "/app/client/generate-logs.sh continuous" &
     CONTINUOUS_PID=$!
     echo "✅ Continuous log generation started (PID: $CONTINUOUS_PID)"
@@ -68,8 +68,8 @@ echo "🔑 Setting up SSH keys for logcollector user..."
 LOGCOLLECTOR_HOME=$(getent passwd logcollector | cut -d: -f6)
 mkdir -p "$LOGCOLLECTOR_HOME/.ssh"
 
-if [ -f "/app/client/examples/mock_ssh_key.pem.pub" ]; then
-    cp /app/client/examples/mock_ssh_key.pem.pub "$LOGCOLLECTOR_HOME/.ssh/authorized_keys"
+if [ -f "/app/client/examples/log_collector_key.pub" ]; then
+    cp /app/client/examples/log_collector_key.pub "$LOGCOLLECTOR_HOME/.ssh/authorized_keys"
     chmod 600 "$LOGCOLLECTOR_HOME/.ssh/authorized_keys"
     chmod 700 "$LOGCOLLECTOR_HOME/.ssh"
     chown -R logcollector:logcollector "$LOGCOLLECTOR_HOME/.ssh"
