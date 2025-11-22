@@ -140,7 +140,7 @@ Usage:
 Environment Variables:
   INPUT_FOLDER     Input folder path (default: ./examples)
   OUTPUT_FOLDER    Output folder path (default: ./output)
-  SSH_KEY_PATH     SSH private key path (default: ./examples/mock_ssh_key.pem)
+  SSH_KEY_PATH     SSH private key path (default: ./examples/log_collector_key)
 
 Examples:
   node log-collection-csv.js

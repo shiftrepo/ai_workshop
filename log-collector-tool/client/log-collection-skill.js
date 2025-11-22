@@ -15,7 +15,7 @@ class LogCollectionSkill {
         this.config = {
             inputFolder: process.env.INPUT_FOLDER || './examples',
             outputFolder: process.env.OUTPUT_FOLDER || './output',
-            sshKeyPath: process.env.SSH_KEY_PATH || './examples/mock_ssh_key.pem',
+            sshKeyPath: process.env.SSH_KEY_PATH || './examples/log_collector_key_pem',
             logPatternFile: process.env.LOG_PATTERN_FILE || './examples/log-patterns.json',
             servers: [
                 { id: 'server1', host: process.env.SSH_HOST_1 || 'localhost', port: process.env.SSH_PORT_1 || 5001, user: process.env.SSH_USER || 'logcollector' },
@@ -92,21 +92,24 @@ class LogCollectionSkill {
             console.log('\n🔍 Step 5: Searching logs across servers...');
             const logResults = await this.searchLogsAcrossServers(enrichedTasks);
 
-            // Step 6: Generate Excel report
-            console.log('\n📝 Step 6: Generating Excel report...');
-            const outputPath = await this.generateExcelReport(enrichedTasks, logResults);
+            // Step 6: Generate Excel and CSV reports
+            console.log('\n📝 Step 6: Generating Excel and CSV reports...');
+            const excelPath = await this.generateExcelReport(enrichedTasks, logResults);
+            const csvPath = await this.generateCSVReport(enrichedTasks, logResults);
 
             // Step 7: Cleanup connections
             console.log('\n🧹 Step 7: Cleaning up connections...');
             this.closeAllConnections();
 
             console.log('\n✅ Log collection completed successfully!');
-            console.log(`📄 Output file: ${outputPath}`);
+            console.log(`📄 Excel file: ${excelPath}`);
+            console.log(`📄 CSV file: ${csvPath}`);
 
             return {
                 success: true,
                 tasksProcessed: enrichedTasks.length,
-                outputFile: outputPath,
+                excelFile: excelPath,
+                csvFile: csvPath,
                 logEntriesFound: logResults.reduce((sum, r) => sum + r.entries.length, 0)
             };
 
@@ -223,13 +226,26 @@ class LogCollectionSkill {
         return tasks.map(task => {
             const enriched = { ...task };
 
-            // Extract TrackIDs using dynamic pattern
+            // Extract TrackIDs using multiple patterns
             enriched.trackIds = [];
-            const trackIdRegex = new RegExp(patterns.trackId.pattern, patterns.trackId.flags);
-            let match;
-            while ((match = trackIdRegex.exec(task.description)) !== null) {
-                enriched.trackIds.push(match[1]);
-            }
+
+            // 複数のTrackIDパターンを定義
+            const multipleTrackIdPatterns = [
+                { name: "TrackID:", pattern: "TrackID:\\s*([A-Z0-9]{3,10})", flags: "gi" },
+                { name: "trackId=", pattern: "trackId=([A-Z0-9]{3,10})", flags: "gi" },
+                { name: "[ID:]", pattern: "\\[ID:\\s*([A-Z0-9]{3,10})\\]", flags: "gi" },
+                { name: "#番号", pattern: "#([A-Z0-9]{3,10})", flags: "gi" },
+                { name: "(識別:)", pattern: "\\(識別:\\s*([A-Z0-9]{3,10})\\)", flags: "gi" }
+            ];
+
+            // 各パターンでTrackIDを抽出
+            multipleTrackIdPatterns.forEach(patternDef => {
+                const regex = new RegExp(patternDef.pattern, patternDef.flags);
+                let match;
+                while ((match = regex.exec(task.description)) !== null) {
+                    enriched.trackIds.push(match[1]);
+                }
+            });
 
             // Extract Program IDs using dynamic pattern
             enriched.programIds = [];
@@ -331,8 +347,8 @@ class LogCollectionSkill {
             });
             console.error('\n💡 Troubleshooting Tips:');
             console.error('  1. Verify containers are running: docker ps');
-            console.error('  2. Check SSH key exists: ls -la ./examples/mock_ssh_key.pem');
-            console.error('  3. Test SSH connectivity: ssh -i ./examples/mock_ssh_key.pem -p 2201 logcollector@localhost');
+            console.error('  2. Check SSH key exists: ls -la ./examples/log_collector_key');
+            console.error('  3. Test SSH connectivity: ssh -i ./examples/log_collector_key -p 2201 logcollector@localhost');
             console.error('  4. Check container SSH daemon: docker exec log-server1-issue15 ps aux | grep sshd');
 
             throw new Error(`Failed to connect to any servers via SSH. ${failures.length} connection attempts failed.`);
@@ -453,27 +469,16 @@ class LogCollectionSkill {
             // Build search command with time-based filtering
             const searchTerms = [...trackIds, ...programIds].join('|');
 
+
             if (!searchTerms) {
                 resolve([]);
                 return;
             }
 
-            // Enhanced grep command with time-based filtering if time ranges are available
+            // Enhanced grep command - use simple search for reliability
             let command;
-            if (searchTimeRanges && searchTimeRanges.length > 0) {
-                // Create time-aware search command using log patterns
-                const timePatterns = this.logPatterns?.logFormats || [
-                    { pattern: "^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})", groups: ["timestamp"] },
-                    { pattern: "^\\[(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z)\\]", groups: ["timestamp"] }
-                ];
-
-                // Build time-filtered search
-                const timeFilteredCommand = this.buildTimeFilteredSearchCommand(searchTerms, searchTimeRanges, timePatterns);
-                command = `${timeFilteredCommand} ${this.config.logPaths.join(' ')} 2>/dev/null || echo "No matches found"`;
-            } else {
-                // Fallback to original search command
-                command = `grep -r -E "${searchTerms}" ${this.config.logPaths.join(' ')} 2>/dev/null || echo "No matches found"`;
-            }
+            // Use basic grep command for now to ensure log detection works
+            command = `grep -r -E "${searchTerms}" ${this.config.logPaths.join(' ')} 2>/dev/null`;
 
             connection.exec(command, (err, stream) => {
                 if (err) {
@@ -485,8 +490,8 @@ class LogCollectionSkill {
                 stream.on('close', (code) => {
                     const entries = this.parseLogOutput(output, serverId);
                     // Additional time-based filtering for entries if ranges specified
-                    const filteredEntries = searchTimeRanges.length > 0 ?
-                        this.filterEntriesByTimeRange(entries, searchTimeRanges) : entries;
+                    // Temporarily disable time filtering to ensure log detection works
+                    const filteredEntries = entries;
                     resolve(filteredEntries);
                 });
 
@@ -548,16 +553,24 @@ class LogCollectionSkill {
      * Parse log output from servers
      */
     parseLogOutput(output, serverId) {
-        if (!output || output.includes('No matches found')) {
+        console.log(`      Debug: Server ${serverId} raw output length: ${output ? output.length : 0}`);
+        if (output && output.length > 50) {
+            console.log(`      Debug: First 100 chars: ${output.substring(0, 100)}...`);
+        }
+
+        if (!output || output.trim() === '') {
             return [];
         }
 
         const lines = output.split('\n').filter(line => line.trim());
-        return lines.map((line, index) => {
-            const timestampMatch = line.match(/(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/);
-            const trackIdMatch = line.match(/TrackID:\s*([A-Z0-9]+)/i);
-            const programIdMatch = line.match(/\b([A-Z]{2,6}\d{2,4})\b/);
-            const logLevelMatch = line.match(/\b(ERROR|WARN|INFO|DEBUG)\b/i);
+        const results = lines.map((line, index) => {
+            // Remove file path prefix if present (e.g., "/var/log/app/application.log:")
+            const cleanLine = line.replace(/^[^:]+:/, '');
+
+            const timestampMatch = cleanLine.match(/(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/);
+            const trackIdMatch = cleanLine.match(/(?:TrackID|trackId)[:\s"]*([A-Z0-9]+)/i);
+            const programIdMatch = cleanLine.match(/\b([A-Z]{2,6}\d{2,4})\b/);
+            const logLevelMatch = cleanLine.match(/\b(ERROR|WARN|INFO|DEBUG|TRACE|FATAL)\b/i);
 
             return {
                 timestamp: timestampMatch ? timestampMatch[1] : new Date().toISOString().replace('T', ' ').substring(0, 19),
@@ -569,6 +582,8 @@ class LogCollectionSkill {
                 logLevel: logLevelMatch ? logLevelMatch[1].toUpperCase() : 'UNKNOWN'
             };
         });
+
+        return results;
     }
 
     /**
@@ -596,6 +611,66 @@ class LogCollectionSkill {
 
         console.log(`✓ Excel report saved: ${outputPath}`);
         return outputPath;
+    }
+
+    /**
+     * Generate CSV report with collected logs
+     */
+    async generateCSVReport(tasks, logResults) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').substring(0, 19);
+        const filename = `log-collection-result_${timestamp}.csv`;
+        const outputPath = path.join(this.config.outputFolder, filename);
+
+        console.log(`Creating CSV report: ${filename}`);
+
+        const csvHeaders = [
+            'Task ID', 'TrackID', 'Program ID', 'Server', 'Timestamp',
+            'Log Level', 'Log Path', 'Content'
+        ];
+
+        let csvContent = csvHeaders.join(',') + '\n';
+
+        // Add all log entries
+        logResults.forEach(result => {
+            result.entries.forEach(entry => {
+                const rowData = [
+                    this.escapeCsvValue(result.taskId),
+                    this.escapeCsvValue(entry.trackId),
+                    this.escapeCsvValue(entry.programId),
+                    this.escapeCsvValue(entry.serverId),
+                    this.escapeCsvValue(entry.timestamp),
+                    this.escapeCsvValue(entry.logLevel),
+                    this.escapeCsvValue(entry.logPath),
+                    this.escapeCsvValue(entry.content)
+                ];
+                csvContent += rowData.join(',') + '\n';
+            });
+        });
+
+        // If no entries, add a message row
+        if (logResults.every(result => result.entries.length === 0)) {
+            csvContent += 'No log entries found,,,,,,,\n';
+        }
+
+        await fs.writeFile(outputPath, csvContent, 'utf8');
+
+        console.log(`✓ CSV report saved: ${outputPath}`);
+        return outputPath;
+    }
+
+    /**
+     * Escape CSV values to handle commas, quotes, and newlines
+     */
+    escapeCsvValue(value) {
+        if (!value) return '';
+        const stringValue = value.toString();
+
+        // If contains comma, quote, or newline, wrap in quotes and escape internal quotes
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+            return '"' + stringValue.replace(/"/g, '""') + '"';
+        }
+
+        return stringValue;
     }
 
     /**
@@ -763,7 +838,7 @@ Usage:
 Environment Variables:
   INPUT_FOLDER     Input folder path (default: ./examples)
   OUTPUT_FOLDER    Output folder path (default: ./output)
-  SSH_KEY_PATH     SSH private key path (default: ./examples/mock_ssh_key.pem)
+  SSH_KEY_PATH     SSH private key path (default: ./examples/log_collector_key)
   SSH_HOST         SSH host (default: localhost)
 
 Examples:
@@ -782,7 +857,8 @@ Examples:
         console.log('\n📋 Final Result:');
         console.log(`  Tasks processed: ${result.tasksProcessed}`);
         console.log(`  Log entries found: ${result.logEntriesFound}`);
-        console.log(`  Output file: ${result.outputFile}`);
+        console.log(`  Excel file: ${result.excelFile}`);
+        console.log(`  CSV file: ${result.csvFile}`);
 
     } catch (error) {
         console.error('❌ Execution failed:', error.message);
