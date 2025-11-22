@@ -1,0 +1,134 @@
+# Docker Compose configuration for Issue #15 Log Collection
+# Creates 3 log server containers with SSH access and random log generation
+
+version: '3.8'
+
+services:
+  # Log Server 1
+  log-server1:
+    build: .
+    image: log-collector-tool:issue15-latest
+    container_name: log-server1-issue15
+    hostname: log-server1
+    ports:
+      - "5001:22"  # SSH access mapped to port 5001 (Issue #15 spec)
+    environment:
+      - CONTINUOUS_LOGS=true
+      - SSH_USER=logcollector
+      - LOG_SERVER_ID=server1
+    volumes:
+      - log-server1-data:/var/log/app
+      - log-server1-tmp:/tmp/logs
+    restart: unless-stopped
+    networks:
+      - log-collection-network
+    healthcheck:
+      test: ["CMD", "ls", "/var/log/app"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Log Server 2
+  log-server2:
+    build: .
+    image: log-collector-tool:issue15-latest
+    container_name: log-server2-issue15
+    hostname: log-server2
+    ports:
+      - "5002:22"  # SSH access mapped to port 5002 (Issue #15 spec)
+    environment:
+      - CONTINUOUS_LOGS=true
+      - SSH_USER=logcollector
+      - LOG_SERVER_ID=server2
+    volumes:
+      - log-server2-data:/var/log/app
+      - log-server2-tmp:/tmp/logs
+    restart: unless-stopped
+    networks:
+      - log-collection-network
+    healthcheck:
+      test: ["CMD", "ls", "/var/log/app"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Log Server 3
+  log-server3:
+    build: .
+    image: log-collector-tool:issue15-latest
+    container_name: log-server3-issue15
+    hostname: log-server3
+    ports:
+      - "5003:22"  # SSH access mapped to port 5003 (Issue #15 spec)
+    environment:
+      - CONTINUOUS_LOGS=true
+      - SSH_USER=logcollector
+      - LOG_SERVER_ID=server3
+    volumes:
+      - log-server3-data:/var/log/app
+      - log-server3-tmp:/tmp/logs
+    restart: unless-stopped
+    networks:
+      - log-collection-network
+    healthcheck:
+      test: ["CMD", "ls", "/var/log/app"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Log Collection Client (for testing the skill)
+  log-client:
+    build: .
+    image: log-collector-tool:issue15-latest
+    container_name: log-client-issue15
+    hostname: log-client
+    environment:
+      - SSH_HOST_1=log-server1
+      - SSH_HOST_2=log-server2
+      - SSH_HOST_3=log-server3
+      - SSH_PORT_1=22
+      - SSH_PORT_2=22
+      - SSH_PORT_3=22
+      - SSH_USER=logcollector
+      - INPUT_FOLDER=./examples
+      - OUTPUT_FOLDER=./output
+      - SSH_KEY_PATH=./examples/mock_ssh_key.pem
+      - LOG_PATTERN_FILE=./examples/log-patterns.json
+    volumes:
+      - client-output:/app/client/output
+      - client-examples:/app/client/examples
+    working_dir: /app/client
+    networks:
+      - log-collection-network
+    depends_on:
+      - log-server1
+      - log-server2
+      - log-server3
+    command: ["tail", "-f", "/dev/null"]  # Keep client container running for manual testing
+
+# Named volumes for persistent data
+volumes:
+  log-server1-data:
+    driver: local
+  log-server1-tmp:
+    driver: local
+  log-server2-data:
+    driver: local
+  log-server2-tmp:
+    driver: local
+  log-server3-data:
+    driver: local
+  log-server3-tmp:
+    driver: local
+  client-output:
+    driver: local
+  client-examples:
+    driver: local
+
+# Network for inter-container communication
+networks:
+  log-collection-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
