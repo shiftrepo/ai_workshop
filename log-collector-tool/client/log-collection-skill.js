@@ -15,13 +15,13 @@ class LogCollectionSkill {
         this.config = {
             inputFolder: process.env.INPUT_FOLDER || './examples',
             outputFolder: process.env.OUTPUT_FOLDER || './output',
-            sshKeyPath: process.env.SSH_KEY_PATH || './examples/log_collector_key_pem',
+            sshKeyPath: process.env.SSH_KEY_PATH, // Required: Set SSH_KEY_PATH environment variable
             logPatternFile: process.env.LOG_PATTERN_FILE || './examples/log-patterns.json',
             servers: [
-                { id: 'server1', host: process.env.SSH_HOST_1 || 'localhost', port: process.env.SSH_PORT_1 || 5001, user: process.env.SSH_USER || 'logcollector' },
-                { id: 'server2', host: process.env.SSH_HOST_2 || 'localhost', port: process.env.SSH_PORT_2 || 5002, user: process.env.SSH_USER || 'logcollector' },
-                { id: 'server3', host: process.env.SSH_HOST_3 || 'localhost', port: process.env.SSH_PORT_3 || 5003, user: process.env.SSH_USER || 'logcollector' }
-            ],
+                { id: 'server1', host: process.env.SSH_HOST_1, port: process.env.SSH_PORT_1, user: process.env.SSH_USER },
+                { id: 'server2', host: process.env.SSH_HOST_2, port: process.env.SSH_PORT_2, user: process.env.SSH_USER },
+                { id: 'server3', host: process.env.SSH_HOST_3, port: process.env.SSH_PORT_3, user: process.env.SSH_USER }
+            ].filter(s => s.host && s.port && s.user), // Only include servers with all required settings
             logPaths: [
                 '/var/log/application.log',
                 '/var/log/app/*.log',
@@ -346,10 +346,10 @@ class LogCollectionSkill {
                 console.error(`  - ${failure.server}: ${failure.error}`);
             });
             console.error('\n💡 Troubleshooting Tips:');
-            console.error('  1. Verify containers are running: docker ps');
-            console.error('  2. Check SSH key exists: ls -la ./examples/log_collector_key');
-            console.error('  3. Test SSH connectivity: ssh -i ./examples/log_collector_key -p 2201 logcollector@localhost');
-            console.error('  4. Check container SSH daemon: docker exec log-server1-issue15 ps aux | grep sshd');
+            console.error('  1. Verify SSH_KEY_PATH is set and file exists');
+            console.error('  2. Check SSH_HOST_*, SSH_PORT_*, SSH_USER environment variables');
+            console.error('  3. Test SSH connectivity: ssh -i <SSH_KEY_PATH> -p <port> <user>@<host>');
+            console.error('  4. Verify network connectivity to target servers');
 
             throw new Error(`Failed to connect to any servers via SSH. ${failures.length} connection attempts failed.`);
         }
@@ -835,15 +835,34 @@ Log Collection Skill - Issue #15 Implementation
 Usage:
   npm run log-collect [instruction]
 
-Environment Variables:
+Required Environment Variables:
+  SSH_KEY_PATH     SSH private key path (Required)
+  SSH_HOST_1       Server 1 hostname/IP (Required)
+  SSH_PORT_1       Server 1 SSH port (Required)
+  SSH_HOST_2       Server 2 hostname/IP (Optional)
+  SSH_PORT_2       Server 2 SSH port (Optional)
+  SSH_HOST_3       Server 3 hostname/IP (Optional)
+  SSH_PORT_3       Server 3 SSH port (Optional)
+  SSH_USER         SSH username (Required)
+
+Optional Environment Variables:
   INPUT_FOLDER     Input folder path (default: ./examples)
   OUTPUT_FOLDER    Output folder path (default: ./output)
-  SSH_KEY_PATH     SSH private key path (default: ./examples/log_collector_key)
-  SSH_HOST         SSH host (default: localhost)
+  LOG_PATTERN_FILE Log pattern config (default: ./examples/log-patterns.json)
 
-Examples:
+Examples (Windows):
+  set SSH_KEY_PATH=C:\\path\\to\\private_key
+  set SSH_HOST_1=192.168.1.100
+  set SSH_PORT_1=22
+  set SSH_USER=logcollector
   npm run log-collect
-  npm run log-collect "collect logs from task management files"
+
+Examples (Linux/Mac):
+  export SSH_KEY_PATH=/path/to/private_key
+  export SSH_HOST_1=192.168.1.100
+  export SSH_PORT_1=22
+  export SSH_USER=logcollector
+  npm run log-collect
         `);
         process.exit(0);
     }

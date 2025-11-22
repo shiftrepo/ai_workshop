@@ -1,352 +1,330 @@
 # Log Collector Tool
 
-A powerful log collection and analysis tool designed for on-premise Linux environments. Collects logs from files, performs filtering and analysis, and generates comprehensive reports.
+A powerful log collection tool for gathering logs from multiple servers via SSH, designed for on-premise Linux environments.
 
-## Features
+## Overview
 
-### Server-side (Log Collection)
-- Collect logs from any text-based log file
-- Multiple timestamp format support (ISO 8601, RFC 3339, syslog)
-- Flexible filtering options:
-  - Time range (start/end time)
-  - Log levels (ERROR, WARN, INFO, DEBUG, TRACE)
-  - Keywords (case-insensitive, comma-separated)
-- Structured JSON output for easy processing
-- Real-time progress indicators for large files
-- Automatic log level detection
+The Log Collector Tool automates log collection from multiple servers based on task management data:
 
-### Client-side (Analysis & Reporting)
-- Load and analyze JSON log data
-- Advanced filtering options
-- Statistical analysis:
-  - Log level distribution
-  - Hourly distribution patterns
-  - Error keyword frequency analysis
-- Colorized console output for better readability
-- Export reports to text files
-- Sample entry display with configurable count
+- Reads Excel task management files to identify tasks requiring log collection
+- Extracts TrackIDs, Program IDs, and timestamps using configurable regex patterns
+- Connects to multiple servers via SSH simultaneously
+- Searches for relevant log entries within calculated time ranges
+- Generates comprehensive Excel and CSV reports
 
-## Architecture
+## Project Structure
 
 ```
 log-collector-tool/
-├── server/          # Log collection scripts (Bash)
-│   └── collect.sh   # Main collection script
-├── client/          # Analysis tool (Node.js)
-│   ├── analyze.js   # Main analysis script
-│   └── package.json # Dependencies
-├── examples/        # Sample log files
-├── output/          # Default output directory
-├── setup.sh         # Setup script
-└── README.md        # This file
+├── client/                      # Core application (production-ready)
+│   ├── log-collection-skill.js  # Main log collection script
+│   ├── log-collection-csv.js    # CSV-focused variant
+│   ├── excel-to-csv.js          # Excel to CSV converter
+│   ├── examples/                # Configuration and patterns
+│   │   ├── log-patterns.json    # Regex patterns for log parsing
+│   │   └── task_management_sample.xlsx  # Sample input
+│   ├── output/                  # Generated reports
+│   └── package.json             # Dependencies
+│
+├── dev-environment/             # Development and testing (not for production)
+│   ├── docker/                  # Container orchestration
+│   │   ├── Dockerfile           # Container definition
+│   │   ├── docker-compose.yml   # 3-server cluster
+│   │   ├── setup-containers.sh  # Container management
+│   │   └── DEPLOYMENT_GUIDE.md  # Deployment instructions
+│   ├── scripts/                 # Test and dev scripts
+│   │   ├── startup.sh           # Container initialization
+│   │   ├── generate-logs.sh     # Log generation
+│   │   └── test-real-ssh.js     # SSH testing
+│   ├── sample-data/             # Test fixtures and SSH keys
+│   │   ├── task_management_sample.xlsx
+│   │   └── log_collector_key*   # SSH keys (test only)
+│   └── README.md                # Development environment guide
+│
+├── CLAUDE.md                    # AI assistant guidance
+└── README.md                    # This file
 ```
 
-## Requirements
+## Quick Start
 
-### Server-side
-- Bash shell (Linux/Unix)
-- `jq` - JSON processor
-- Standard Unix tools: `grep`, `sed`, `awk`, `date`
+### Production Use
 
-### Client-side
-- Node.js 14.x or higher
-- npm (for package management)
+1. **Install dependencies:**
 
-## Installation
-
-### 1. Install System Dependencies
-
-**RHEL/CentOS:**
-```bash
-sudo yum install jq
-```
-
-**Ubuntu/Debian:**
-```bash
-sudo apt install jq
-```
-
-### 2. Run Setup Script
-
-```bash
-cd log-collector-tool
-bash setup.sh
-```
-
-This will:
-- Check for required commands
-- Make server scripts executable
-- Install client Node.js dependencies
-- Create output directories
-
-## Usage
-
-### Basic Workflow
-
-**Step 1: Collect logs (server-side)**
-```bash
-cd server
-./collect.sh /path/to/logfile.log ../output/logs.json
-```
-
-**Step 2: Analyze logs (client-side)**
 ```bash
 cd client
-node analyze.js ../output/logs.json
+npm install
 ```
 
-### Server-side: collect.sh
+2. **Configure SSH and patterns:**
 
-#### Basic Usage
+Create `.env` file or set environment variables:
+
 ```bash
-./collect.sh <log_file> <output_json>
+export SSH_HOST_1=your-server1.com
+export SSH_HOST_2=your-server2.com
+export SSH_HOST_3=your-server3.com
+export SSH_PORT_1=22
+export SSH_PORT_2=22
+export SSH_PORT_3=22
+export SSH_USER=your-ssh-user
+export SSH_KEY_PATH=/path/to/your/ssh/key
+export INPUT_FOLDER=./input
+export OUTPUT_FOLDER=./output
+export LOG_PATTERN_FILE=./examples/log-patterns.json
 ```
 
-#### With Filters
+3. **Prepare task management file:**
+
+Place your Excel task management file in the input folder with columns:
+- インシデントID (Incident ID)
+- タイムスタンプ (Timestamp)
+- インシデント概要 (Description with TrackIDs)
+- ステータス (Status - must be "情報収集中" for collection)
+
+4. **Run log collection:**
+
 ```bash
-# Filter by time range
-./collect.sh /var/log/app.log output.json \
-  --start-time "2025-11-22T00:00:00" \
-  --end-time "2025-11-22T23:59:59"
-
-# Filter by keywords
-./collect.sh /var/log/app.log output.json \
-  --keywords "error,failed,timeout"
-
-# Filter by log level
-./collect.sh /var/log/app.log output.json \
-  --level ERROR
-
-# Combine multiple filters
-./collect.sh /var/log/app.log output.json \
-  --start-time "2025-11-22T10:00:00" \
-  --keywords "database" \
-  --level ERROR
+cd client
+node log-collection-skill.js
 ```
 
-#### Options
+### Development/Testing
 
-| Option | Description | Example |
-|--------|-------------|---------|
-| `--start-time TIME` | Filter logs after this time | `--start-time "2025-11-22T00:00:00"` |
-| `--end-time TIME` | Filter logs before this time | `--end-time "2025-11-22T23:59:59"` |
-| `--keywords WORDS` | Comma-separated keywords | `--keywords "error,warning,failed"` |
-| `--level LEVEL` | Filter by log level | `--level ERROR` |
+For development and testing with Docker containers:
 
-### Client-side: analyze.js
-
-#### Basic Usage
 ```bash
-node analyze.js <json_file>
+cd dev-environment/docker
+./setup-containers.sh start
 ```
 
-#### With Options
-```bash
-# Show top 20 entries
-node analyze.js logs.json --top 20
+See `dev-environment/README.md` for detailed development environment documentation.
 
-# Filter by log level
-node analyze.js logs.json --level ERROR
+## Core Features
 
-# Search for specific text
-node analyze.js logs.json --search "database"
+### Multi-Server SSH Collection
 
-# Save report to file
-node analyze.js logs.json --output report.txt
+- Connects to multiple servers simultaneously
+- Key-based authentication
+- Parallel log search operations
+- Graceful error handling per server
 
-# Combine options
-node analyze.js logs.json --level ERROR --search "timeout" --top 50 --output errors.txt
-```
+### Pattern-Based Extraction
 
-#### Options
-
-| Option | Description | Example |
-|--------|-------------|---------|
-| `--top N` | Show top N entries (default: 10) | `--top 20` |
-| `--level LEVEL` | Filter by log level | `--level ERROR` |
-| `--search TEXT` | Search for text in messages | `--search "database"` |
-| `--output FILE` | Save report to file | `--output report.txt` |
-
-## Output Format
-
-### JSON Structure
+Configurable regex patterns in `log-patterns.json`:
 
 ```json
 {
-  "collection_info": {
-    "timestamp": "2025-11-22T03:59:00Z",
-    "source_files": ["/var/log/app.log"],
-    "filter": {
-      "start_time": "",
-      "end_time": "",
-      "keywords": "",
-      "level": ""
+  "patterns": {
+    "trackId": {
+      "pattern": "(?:TrackID|trackId)[:\\s\"]*([A-Z0-9]{3,10})",
+      "flags": "gi"
+    },
+    "programId": {
+      "pattern": "\\b([A-Z]{2,6}\\d{2,4})\\b",
+      "flags": "g"
+    },
+    "timestamp": {
+      "pattern": "(\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}:\\d{2})",
+      "flags": "g"
     }
   },
-  "entries": [
-    {
-      "timestamp": "2025-11-22T10:15:30",
-      "level": "ERROR",
-      "source": "/var/log/app.log",
-      "raw": "2025-11-22 10:15:30 ERROR Database connection failed"
-    }
-  ],
-  "statistics": {
-    "total_lines": 1000,
-    "total_entries": 150,
-    "by_level": {
-      "ERROR": 5,
-      "WARN": 20,
-      "INFO": 125,
-      "DEBUG": 0,
-      "TRACE": 0,
-      "UNKNOWN": 0
-    }
+  "timeRanges": {
+    "searchBefore": 1800,  # 30 minutes before
+    "searchAfter": 1800    # 30 minutes after
   }
 }
 ```
 
-### Analysis Report
+### Report Generation
 
-The analysis tool generates a comprehensive report including:
-- **Collection Information**: Source files, filters applied
-- **Statistics**: Entry counts, level distribution
-- **Log Level Distribution**: Visual bar chart
-- **Time Range**: First and last entry timestamps
-- **Hourly Distribution**: Activity patterns by hour
-- **Top Error Keywords**: Most frequent words in error messages
-- **Sample Entries**: Top N log entries with details
+Generates both Excel and CSV reports with:
+- Task ID
+- TrackID
+- Program ID
+- Server name
+- Timestamp
+- Log level
+- Log path
+- Full log content
 
-## Examples
+## Configuration
 
-### Example 1: Collect All Errors from Today
-```bash
-cd server
-./collect.sh /var/log/application.log ../output/errors.json \
-  --start-time "$(date +%Y-%m-%d)T00:00:00" \
-  --level ERROR
+### Environment Variables
 
-cd ../client
-node analyze.js ../output/errors.json --top 50
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SSH_HOST_*` | Server hostnames | localhost |
+| `SSH_PORT_*` | SSH ports | 5001, 5002, 5003 |
+| `SSH_USER` | SSH username | logcollector |
+| `SSH_KEY_PATH` | Path to SSH private key | ./examples/log_collector_key |
+| `INPUT_FOLDER` | Task management file location | ./examples |
+| `OUTPUT_FOLDER` | Report output directory | ./output |
+| `LOG_PATTERN_FILE` | Pattern configuration file | ./examples/log-patterns.json |
+
+### Log Pattern Configuration
+
+Edit `client/examples/log-patterns.json` to customize:
+- TrackID extraction patterns
+- Program ID patterns
+- Timestamp formats
+- Time range windows for search
+
+### Server Log Paths
+
+Configure in `log-collection-skill.js`:
+
+```javascript
+logPaths: [
+  '/var/log/application.log',
+  '/var/log/app/*.log',
+  '/tmp/logs/*.log'
+]
 ```
 
-### Example 2: Find Database-Related Issues
-```bash
-cd server
-./collect.sh /var/log/app.log ../output/db_issues.json \
-  --keywords "database,connection,timeout"
+## Output Format
 
-cd ../client
-node analyze.js ../output/db_issues.json --search "failed" --output db_report.txt
+### Excel Report
+
+- **Summary Sheet**: Task overview with total log counts
+- **Detail Sheets**: Per-task log entries with full context
+- Formatted with headers and filters
+
+### CSV Report
+
+Single CSV file with all log entries:
+
+```csv
+Task ID,TrackID,Program ID,Server,Timestamp,Log Level,Log Path,Content
+INC001,ABC123,AUTH101,server1,2025-11-22 10:30:00,ERROR,/var/log/app.log,"Full log entry..."
 ```
 
-### Example 3: Analyze System Logs for Last Hour
-```bash
-cd server
-./collect.sh /var/log/syslog ../output/recent.json \
-  --start-time "$(date -d '1 hour ago' '+%Y-%m-%dT%H:%M:%S')"
+## Requirements
 
-cd ../client
-node analyze.js ../output/recent.json --level ERROR --level WARN
-```
+### Production Environment
 
-## Supported Log Formats
+- Node.js 14.x or higher
+- SSH access to target servers
+- SSH private key for authentication
+- Excel task management files (.xlsx)
 
-The tool automatically detects and parses multiple timestamp formats:
+### Development Environment
 
-1. **ISO 8601**: `2025-11-22T10:15:30` or `2025-11-22T10:15:30Z`
-2. **RFC 3339**: `2025-11-22 10:15:30`
-3. **Syslog**: `Nov 22 10:15:30` (assumes current year)
+Additional requirements for dev/test:
+- Docker or Podman
+- Docker Compose
+- 8GB RAM recommended
+- Ports 5001-5003 available
 
-Log levels detected:
-- ERROR, ERRO, ERR
-- WARN, WARNING
-- INFO
-- DEBUG
-- TRACE
+## Dependencies
+
+Core dependencies (automatically installed):
+- `exceljs`: Excel file processing
+- `ssh2`: SSH client for server connections
+- `chalk`: Console output formatting (optional)
+
+## Security Considerations
+
+### Production Deployment
+
+- **SSH Keys**: Use dedicated SSH keys with restricted permissions
+- **User Permissions**: Use non-root SSH user with minimal log read permissions
+- **Network Security**: Ensure SSH connections are over secure networks
+- **Key Management**: Never commit SSH private keys to repositories
+- **Input Validation**: Task management files are validated before processing
+
+### Development Environment
+
+⚠️ **Development keys in `dev-environment/sample-data/` are for testing only!**
+
+Never use these keys in production:
+- `log_collector_key*`
+- `mock_ssh_key.pem*`
 
 ## Troubleshooting
 
-### "jq: command not found"
-Install jq using your package manager:
-```bash
-# RHEL/CentOS
-sudo yum install jq
-
-# Ubuntu/Debian
-sudo apt install jq
-```
-
-### "Permission denied" when running collect.sh
-Make the script executable:
-```bash
-chmod +x server/collect.sh
-```
-
-### Large Log Files Taking Too Long
-- Use time filters to reduce the data set:
-  ```bash
-  ./collect.sh large.log output.json --start-time "2025-11-22T10:00:00"
-  ```
-- Filter by specific log levels:
-  ```bash
-  ./collect.sh large.log output.json --level ERROR
-  ```
-
-### JSON Output is Invalid
-- Check that your log file doesn't contain special characters that break JSON
-- The script attempts to escape quotes and backslashes, but some formats may cause issues
-- Try processing a smaller sample first
-
-### No Timestamps Detected
-- Check that your log format matches one of the supported formats
-- Logs without recognizable timestamps will have empty timestamp fields
-- You can still collect and analyze such logs, but time-based filtering won't work
-
-## Performance Considerations
-
-- **Large Files**: Processing files with millions of lines may take several minutes
-- **Filtering**: Apply filters during collection (server-side) for better performance
-- **Memory**: The client loads the entire JSON into memory; very large datasets may require splitting
-- **Progress**: Collection shows progress every 1000 entries for large files
-
-## Extending the Tool
-
-### Adding Custom Timestamp Formats
-
-Edit `server/collect.sh` and add a new pattern in the `extract_timestamp` function:
+### SSH Connection Failures
 
 ```bash
-# Add your custom format
-if echo "$line" | grep -Eq 'your-regex-pattern'; then
-    echo "$line" | grep -oE 'your-extraction-pattern' | head -1
-    return
-fi
+# Test SSH connectivity manually
+ssh -i /path/to/key -p PORT user@host
+
+# Check SSH key permissions (must be 600)
+chmod 600 /path/to/ssh/key
+
+# Verify user has log read permissions on target servers
+ssh -i /path/to/key -p PORT user@host "ls -la /var/log/app/"
 ```
 
-### Adding Custom Analysis Metrics
+### No Logs Found
 
-Edit `client/analyze.js` and extend the `analyzeEntries` function:
+- Verify TrackID exists in server logs: `grep "TrackID" /var/log/app/*.log`
+- Check time range calculation in output
+- Verify log path configuration matches server setup
+- Check log pattern regex in `log-patterns.json`
 
-```javascript
-// Add custom analysis
-analysis.customMetric = entries.filter(e => /* your condition */).length;
+### Excel Processing Errors
+
+- Verify Excel file format is .xlsx
+- Check column names match expected Japanese headers
+- Ensure "情報収集中" status is exact (including characters)
+
+## Performance
+
+- **Parallel Operations**: Connects to all servers simultaneously
+- **Timeout Management**: 30-second SSH connection timeout, 60-second search timeout
+- **Memory Usage**: ~50MB per active SSH connection
+- **Typical Collection Time**: 10-30 seconds for 3 servers with 20-50 log entries
+
+## Limitations
+
+- Maximum 3 servers configured (can be extended by modifying code)
+- Excel files must follow Japanese task management format
+- SSH key-based authentication only (no password auth)
+- Log files must be text-based and grep-searchable
+
+## Examples
+
+### Basic Collection
+
+```bash
+cd client
+node log-collection-skill.js
 ```
+
+### CSV Output Only
+
+```bash
+cd client
+node log-collection-csv.js
+```
+
+### Custom Configuration
+
+```bash
+cd client
+SSH_KEY_PATH=/path/to/custom/key \
+INPUT_FOLDER=/path/to/tasks \
+OUTPUT_FOLDER=/path/to/reports \
+node log-collection-skill.js
+```
+
+## Development
+
+See `dev-environment/README.md` for:
+- Development environment setup
+- Container management
+- Test script usage
+- Sample data generation
+- SSH connectivity testing
 
 ## License
 
 ISC
 
-## Contributing
-
-Contributions are welcome! Please ensure:
-- Follow existing code style
-- Test with various log formats
-- Update documentation for new features
-
 ## Support
 
 For issues and questions:
-1. Check the Troubleshooting section
-2. Review example log files in `examples/`
-3. Verify system requirements are met
+1. Check `CLAUDE.md` for AI assistant context
+2. Review `dev-environment/README.md` for development setup
+3. See `dev-environment/docker/DEPLOYMENT_GUIDE.md` for deployment details
