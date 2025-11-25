@@ -148,7 +148,7 @@ npm run log-collect
 
 ## 🧪 開発環境
 
-開発とテストのリソースは `../dev-environment/` にあります：
+開発とテストのリソースは `../../dev-environment/` にあります：
 - ローカルテスト用Dockerコンテナ
 - サンプルSSHキー（開発専用）
 - テストスクリプトとユーティリティ
