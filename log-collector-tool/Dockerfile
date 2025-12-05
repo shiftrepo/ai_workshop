@@ -27,38 +27,50 @@ COPY client/package*.json ./client/
 # Install dependencies
 RUN cd client && npm install
 
-# Copy all application files
-COPY . .
+# Copy specific application files (avoid copying entire directory)
+COPY client/ ./client/
+COPY dev-environment/scripts/ ./scripts/
 
 # Create necessary directories with proper permissions
-RUN mkdir -p client/output client/examples /var/log/app /tmp/logs && \
-    chmod 777 client/output client/examples /var/log/app /tmp/logs && \
+RUN mkdir -p client/output client/examples /var/log/app /tmp/logs /app/.ssh && \
+    chmod 755 client/output client/examples /var/log/app /tmp/logs /app/.ssh && \
     chown -R logcollector:logcollector /app
 
-# Make scripts executable (only for files that exist)
-RUN chmod +x client/log-collection-skill.js client/generate-logs.sh client/startup.sh client/test-real-ssh.js
+# Make scripts executable (check existence first)
+RUN find /app -name "*.js" -type f -exec chmod +x {} \; 2>/dev/null || true && \
+    find /app -name "*.sh" -type f -exec chmod +x {} \; 2>/dev/null || true
 
 # Configure SSH properly for container use
 RUN mkdir -p /run/sshd && \
     chmod 755 /run/sshd
 
-# Keep running as root to allow SSH daemon startup
-# USER logcollector  # Commented out - run as root to start SSH daemon
+# Copy and set up entrypoint script
+COPY docker-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Set environment variables
+# Set environment variables (externalized for Docker Hub)
 ENV NODE_ENV=production \
     TZ=UTC \
     INPUT_FOLDER=./examples \
-    OUTPUT_FOLDER=./output
+    OUTPUT_FOLDER=./output \
+    SSH_HOST_1= \
+    SSH_HOST_2= \
+    SSH_HOST_3= \
+    SSH_PORT_1=22 \
+    SSH_PORT_2=22 \
+    SSH_PORT_3=22 \
+    SSH_USER=logcollector \
+    CONTINUOUS_LOGS=false \
+    LOG_SERVER_ID=server1
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node --version && bash --version || exit 1
 
-# Default command: run startup script with log generation
-CMD ["/app/client/startup.sh"]
+# Default command: run unified entrypoint
+CMD ["/entrypoint.sh"]
 
 # Labels
 LABEL maintainer="Log Collector Tool - Issue #15" \
       version="1.0.0" \
-      description="Issue #15 Log Collection Skill Implementation"
+      description="Issue #15 Log Collection Skill Implementation - Docker Hub Ready"
