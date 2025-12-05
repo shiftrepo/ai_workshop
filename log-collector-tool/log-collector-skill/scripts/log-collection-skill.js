@@ -16,7 +16,7 @@ class LogCollectionSkill {
             inputFolder: process.env.INPUT_FOLDER || './examples',
             outputFolder: process.env.OUTPUT_FOLDER || './output',
             sshKeyPath: process.env.SSH_KEY_PATH || '/app/.ssh/container_key', // Docker Hub compatible: Use generated key
-            logPatternFile: process.env.LOG_PATTERN_FILE || './examples/log-patterns.json',
+            logPatternFile: process.env.LOG_PATTERN_FILE || (process.env.INPUT_FOLDER ? `${process.env.INPUT_FOLDER}/log-patterns.json` : './examples/log-patterns.json'),
             servers: [
                 { id: 'server1', host: process.env.SSH_HOST_1, port: parseInt(process.env.SSH_PORT_1) || 22, user: process.env.SSH_USER || 'logcollector' },
                 { id: 'server2', host: process.env.SSH_HOST_2, port: parseInt(process.env.SSH_PORT_2) || 22, user: process.env.SSH_USER || 'logcollector' },

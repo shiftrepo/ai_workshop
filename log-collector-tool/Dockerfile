@@ -28,10 +28,7 @@ RUN mkdir -p /app/scripts /app/dev-scripts /app/examples /app/output /var/log/ap
 
 # Install Node.js dependencies placeholder (will be handled via mounted volume or init script)
 # Dependencies will be installed at runtime when volume is mounted
-
-# Make scripts executable (check existence first)
-RUN find /app -name "*.js" -type f -exec chmod +x {} \; 2>/dev/null || true && \
-    find /app -name "*.sh" -type f -exec chmod +x {} \; 2>/dev/null || true
+# Script permissions will be handled by entrypoint when files are mounted
 
 # Configure SSH properly for container use
 RUN mkdir -p /run/sshd && \

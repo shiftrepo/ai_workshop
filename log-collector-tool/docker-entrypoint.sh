@@ -7,10 +7,19 @@ set -euo pipefail
 
 echo "🚀 Starting Log Collector Tool Container (Mount Mode Ready)..."
 
-# Function to install Node.js dependencies if mounted
-install_dependencies() {
-    echo "📦 Checking Node.js dependencies..."
+# Function to setup mounted files and install dependencies
+setup_mounted_files() {
+    echo "📦 Setting up mounted files and dependencies..."
 
+    # Set correct permissions for mounted scripts
+    if [ -d "/app/scripts" ]; then
+        echo "🔧 Setting script permissions..."
+        find /app/scripts -name "*.js" -type f -exec chmod +x {} \; 2>/dev/null || true
+        find /app/scripts -name "*.sh" -type f -exec chmod +x {} \; 2>/dev/null || true
+        find /app/dev-scripts -name "*.sh" -type f -exec chmod +x {} \; 2>/dev/null || true
+    fi
+
+    # Install Node.js dependencies if mounted
     if [ -f "/app/scripts/package.json" ]; then
         echo "📝 Installing Node.js dependencies from mounted volume..."
         cd /app/scripts
@@ -214,7 +223,7 @@ main() {
     echo "🐳 Mount Mode Compatible Log Collector Tool Starting..."
 
     # Setup components
-    install_dependencies    # Install npm dependencies from mounted volume
+    setup_mounted_files     # Setup mounted files and install npm dependencies
     generate_ssh_keys
     setup_sshd
     generate_sample_logs
