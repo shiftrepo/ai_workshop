@@ -89,13 +89,13 @@ services:
       - SSH_PORT_2=22
       - SSH_PORT_3=22
       - SSH_USER=${SSH_USER:-logcollector}
-      - INPUT_FOLDER=./examples
-      - OUTPUT_FOLDER=./output
+      - INPUT_FOLDER=./scripts/examples
+      - OUTPUT_FOLDER=./scripts/output
       - SSH_KEY_PATH=/app/.ssh/container_key  # Use dynamically generated key
-      - LOG_PATTERN_FILE=./examples/log-patterns.json
+      - LOG_PATTERN_FILE=./scripts/examples/log-patterns.json
     volumes:
-      - client-output:/app/output
-      - client-examples:/app/examples
+      - client-output:/app/scripts/output
+      - client-examples:/app/scripts/examples
     working_dir: /app
     networks:
       - log-collection-network

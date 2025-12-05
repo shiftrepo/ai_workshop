@@ -22,18 +22,19 @@ RUN addgroup -g 2000 logcollector && \
 WORKDIR /app
 
 # Copy package files first for better caching
-COPY client/package*.json ./client/
+COPY log-collector-skill/scripts/package*.json ./scripts/
 
 # Install dependencies
-RUN cd client && npm install
+RUN cd scripts && npm install
 
 # Copy specific application files (avoid copying entire directory)
-COPY client/ ./client/
-COPY dev-environment/scripts/ ./scripts/
+COPY log-collector-skill/scripts/ ./scripts/
+COPY dev-environment/scripts/ ./dev-scripts/
+COPY examples/ ./scripts/examples/
 
 # Create necessary directories with proper permissions
-RUN mkdir -p client/output client/examples /var/log/app /tmp/logs /app/.ssh && \
-    chmod 755 client/output client/examples /var/log/app /tmp/logs /app/.ssh && \
+RUN mkdir -p scripts/output scripts/examples /var/log/app /tmp/logs /app/.ssh && \
+    chmod 755 scripts/output scripts/examples /var/log/app /tmp/logs /app/.ssh && \
     chown -R logcollector:logcollector /app
 
 # Make scripts executable (check existence first)
@@ -51,8 +52,8 @@ RUN chmod +x /entrypoint.sh
 # Set environment variables (externalized for Docker Hub)
 ENV NODE_ENV=production \
     TZ=UTC \
-    INPUT_FOLDER=./examples \
-    OUTPUT_FOLDER=./output \
+    INPUT_FOLDER=./scripts/examples \
+    OUTPUT_FOLDER=./scripts/output \
     SSH_HOST_1= \
     SSH_HOST_2= \
     SSH_HOST_3= \
