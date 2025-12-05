@@ -21,6 +21,9 @@ RUN addgroup -g 2000 logcollector && \
 # Set working directory
 WORKDIR /app
 
+# Create necessary directories first
+RUN mkdir -p scripts dev-scripts
+
 # Copy package files first for better caching
 COPY log-collector-skill/scripts/package*.json ./scripts/
 
