@@ -5,7 +5,35 @@
 
 set -euo pipefail
 
-echo "🚀 Starting Log Collector Tool Container (Docker Hub Ready)..."
+echo "🚀 Starting Log Collector Tool Container (Mount Mode Ready)..."
+
+# Function to install Node.js dependencies if mounted
+install_dependencies() {
+    echo "📦 Checking Node.js dependencies..."
+
+    if [ -f "/app/scripts/package.json" ]; then
+        echo "📝 Installing Node.js dependencies from mounted volume..."
+        cd /app/scripts
+
+        # Check if node_modules exists and is populated
+        if [ ! -d "node_modules" ] || [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
+            echo "🔄 Installing npm dependencies..."
+            npm install --production --no-audit --no-fund
+
+            if [ $? -eq 0 ]; then
+                echo "✅ Dependencies installed successfully"
+            else
+                echo "⚠️  Dependencies installation failed, continuing without"
+            fi
+        else
+            echo "✅ Dependencies already installed"
+        fi
+
+        cd /app
+    else
+        echo "⚠️  No package.json found in mounted scripts directory"
+    fi
+}
 
 # Function to generate SSH key pair if not exists
 generate_ssh_keys() {
@@ -183,9 +211,10 @@ show_container_info() {
 
 # Main execution flow
 main() {
-    echo "🐳 Docker Hub Compatible Log Collector Tool Starting..."
+    echo "🐳 Mount Mode Compatible Log Collector Tool Starting..."
 
     # Setup components
+    install_dependencies    # Install npm dependencies from mounted volume
     generate_ssh_keys
     setup_sshd
     generate_sample_logs

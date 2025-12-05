@@ -1,0 +1,158 @@
+# Development Docker Compose - Mount Mode for Live Development
+# Use this for development with live file mounting and hot-reload capabilities
+
+version: '3.8'
+
+services:
+  # Log Server 1 (Development Mode)
+  log-server1-dev:
+    build: .
+    container_name: log-server1-dev
+    hostname: log-server1
+    ports:
+      - "${SSH_PORT_1:-5001}:22"
+    environment:
+      - CONTINUOUS_LOGS=${CONTINUOUS_LOGS:-true}
+      - SSH_USER=${SSH_USER:-logcollector}
+      - LOG_SERVER_ID=server1
+      - LOG_INTERVAL=${LOG_INTERVAL:-30}
+      - NODE_ENV=development
+    volumes:
+      # Live mounting for development (read-write)
+      - ./log-collector-skill/scripts:/app/scripts:rw
+      - ./dev-environment/scripts:/app/dev-scripts:rw
+      - ./examples:/app/examples:rw
+      # Persistent data volumes
+      - log-server1-dev-data:/var/log/app
+      - log-server1-dev-tmp:/tmp/logs
+      - ./output/server1:/app/output  # Output to host directory
+    restart: unless-stopped
+    networks:
+      - log-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "ls /var/log/app && pgrep sshd"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Log Server 2 (Development Mode)
+  log-server2-dev:
+    build: .
+    container_name: log-server2-dev
+    hostname: log-server2
+    ports:
+      - "${SSH_PORT_2:-5002}:22"
+    environment:
+      - CONTINUOUS_LOGS=${CONTINUOUS_LOGS:-true}
+      - SSH_USER=${SSH_USER:-logcollector}
+      - LOG_SERVER_ID=server2
+      - LOG_INTERVAL=${LOG_INTERVAL:-30}
+      - NODE_ENV=development
+    volumes:
+      # Live mounting for development (read-write)
+      - ./log-collector-skill/scripts:/app/scripts:rw
+      - ./dev-environment/scripts:/app/dev-scripts:rw
+      - ./examples:/app/examples:rw
+      # Persistent data volumes
+      - log-server2-dev-data:/var/log/app
+      - log-server2-dev-tmp:/tmp/logs
+      - ./output/server2:/app/output  # Output to host directory
+    restart: unless-stopped
+    networks:
+      - log-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "ls /var/log/app && pgrep sshd"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Log Server 3 (Development Mode)
+  log-server3-dev:
+    build: .
+    container_name: log-server3-dev
+    hostname: log-server3
+    ports:
+      - "${SSH_PORT_3:-5003}:22"
+    environment:
+      - CONTINUOUS_LOGS=${CONTINUOUS_LOGS:-true}
+      - SSH_USER=${SSH_USER:-logcollector}
+      - LOG_SERVER_ID=server3
+      - LOG_INTERVAL=${LOG_INTERVAL:-30}
+      - NODE_ENV=development
+    volumes:
+      # Live mounting for development (read-write)
+      - ./log-collector-skill/scripts:/app/scripts:rw
+      - ./dev-environment/scripts:/app/dev-scripts:rw
+      - ./examples:/app/examples:rw
+      # Persistent data volumes
+      - log-server3-dev-data:/var/log/app
+      - log-server3-dev-tmp:/tmp/logs
+      - ./output/server3:/app/output  # Output to host directory
+    restart: unless-stopped
+    networks:
+      - log-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "ls /var/log/app && pgrep sshd"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Log Collection Client (Development Mode)
+  log-client-dev:
+    build: .
+    container_name: log-client-dev
+    hostname: log-client
+    environment:
+      - SSH_HOST_1=log-server1
+      - SSH_HOST_2=log-server2
+      - SSH_HOST_3=log-server3
+      - SSH_PORT_1=22
+      - SSH_PORT_2=22
+      - SSH_PORT_3=22
+      - SSH_USER=${SSH_USER:-logcollector}
+      - INPUT_FOLDER=/app/examples
+      - OUTPUT_FOLDER=/app/output
+      - SSH_KEY_PATH=/app/.ssh/container_key
+      - LOG_PATTERN_FILE=/app/examples/log-patterns.json
+      - NODE_ENV=development
+    volumes:
+      # Live mounting for development (read-write)
+      - ./log-collector-skill/scripts:/app/scripts:rw
+      - ./dev-environment/scripts:/app/dev-scripts:rw
+      - ./examples:/app/examples:rw
+      # Output to host directory for easy access
+      - ./output/client:/app/output
+    working_dir: /app
+    networks:
+      - log-dev-network
+    depends_on:
+      - log-server1-dev
+      - log-server2-dev
+      - log-server3-dev
+    # Interactive mode for development
+    stdin_open: true
+    tty: true
+    command: ["bash"]  # Start with bash for interactive development
+
+# Named volumes for development data
+volumes:
+  log-server1-dev-data:
+    driver: local
+  log-server1-dev-tmp:
+    driver: local
+  log-server2-dev-data:
+    driver: local
+  log-server2-dev-tmp:
+    driver: local
+  log-server3-dev-data:
+    driver: local
+  log-server3-dev-tmp:
+    driver: local
+
+# Development network
+networks:
+  log-dev-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

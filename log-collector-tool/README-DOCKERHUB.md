@@ -59,6 +59,22 @@ docker-compose up -d
 
 ## 🔧 Configuration
 
+### Mount Mode vs Copy Mode
+
+**Mount Mode (Recommended for Development):**
+- ✅ Live file updates without rebuild
+- ✅ Direct access to output files on host
+- ✅ Real-time code changes
+- ✅ Better development experience
+- Use `docker-compose-dev.yml`
+
+**Copy Mode (Production):**
+- ✅ Self-contained images
+- ✅ Faster startup (no dependency installation)
+- ✅ Docker Hub compatibility
+- ✅ Production deployment ready
+- Use `docker-compose.yml`
+
 ### Environment Variables
 
 | Variable | Description | Default |
@@ -69,6 +85,7 @@ docker-compose up -d
 | `SSH_USER` | SSH username | `logcollector` |
 | `SSH_HOST_*` | Target server hostnames | - |
 | `SSH_PORT_*` | SSH port numbers | `22` |
+| `NODE_ENV` | Node.js environment | `production` |
 
 ### Production Override
 ```bash
@@ -125,6 +142,23 @@ docker run -v /host/ssh/key:/app/.ssh/production_key \
 ## 🐳 Docker Hub Usage Examples
 
 ### Development/Testing
+
+**Mount Mode (Recommended for Development):**
+```bash
+# Development with live file mounting
+docker-compose -f docker-compose-dev.yml up -d
+
+# Access development container interactively
+docker exec -it log-client-dev bash
+
+# Inside container - run log collection with live updates
+node /app/scripts/log-collection-skill.js
+
+# View output directly on host
+ls -la ./output/client/
+```
+
+**Production Mode:**
 ```bash
 # Full 3-server test environment
 docker-compose up -d
@@ -135,7 +169,7 @@ docker exec log-client-issue15 \
 
 # Run log collection
 docker exec log-client-issue15 \
-  node /app/log-collector-skill/scripts/log-collection-skill.js
+  node /app/scripts/log-collection-skill.js
 ```
 
 ### Production Deployment

@@ -17,8 +17,14 @@ services:
       - LOG_SERVER_ID=server1
       - LOG_INTERVAL=${LOG_INTERVAL:-30}
     volumes:
+      # Mount source code and configuration (shared mode)
+      - ./log-collector-skill/scripts:/app/scripts:rw
+      - ./dev-environment/scripts:/app/dev-scripts:ro
+      - ./examples:/app/examples:ro
+      # Persistent data volumes
       - log-server1-data:/var/log/app
       - log-server1-tmp:/tmp/logs
+      - log-server1-output:/app/output
     restart: unless-stopped
     networks:
       - log-collection-network
@@ -41,8 +47,14 @@ services:
       - LOG_SERVER_ID=server2
       - LOG_INTERVAL=${LOG_INTERVAL:-30}
     volumes:
+      # Mount source code and configuration (shared mode)
+      - ./log-collector-skill/scripts:/app/scripts:rw
+      - ./dev-environment/scripts:/app/dev-scripts:ro
+      - ./examples:/app/examples:ro
+      # Persistent data volumes
       - log-server2-data:/var/log/app
       - log-server2-tmp:/tmp/logs
+      - log-server2-output:/app/output
     restart: unless-stopped
     networks:
       - log-collection-network
@@ -65,8 +77,14 @@ services:
       - LOG_SERVER_ID=server3
       - LOG_INTERVAL=${LOG_INTERVAL:-30}
     volumes:
+      # Mount source code and configuration (shared mode)
+      - ./log-collector-skill/scripts:/app/scripts:rw
+      - ./dev-environment/scripts:/app/dev-scripts:ro
+      - ./examples:/app/examples:ro
+      # Persistent data volumes
       - log-server3-data:/var/log/app
       - log-server3-tmp:/tmp/logs
+      - log-server3-output:/app/output
     restart: unless-stopped
     networks:
       - log-collection-network
@@ -89,13 +107,17 @@ services:
       - SSH_PORT_2=22
       - SSH_PORT_3=22
       - SSH_USER=${SSH_USER:-logcollector}
-      - INPUT_FOLDER=./scripts/examples
-      - OUTPUT_FOLDER=./scripts/output
+      - INPUT_FOLDER=/app/examples
+      - OUTPUT_FOLDER=/app/output
       - SSH_KEY_PATH=/app/.ssh/container_key  # Use dynamically generated key
-      - LOG_PATTERN_FILE=./scripts/examples/log-patterns.json
+      - LOG_PATTERN_FILE=/app/examples/log-patterns.json
     volumes:
-      - client-output:/app/scripts/output
-      - client-examples:/app/scripts/examples
+      # Mount source code and configuration (shared mode)
+      - ./log-collector-skill/scripts:/app/scripts:rw
+      - ./dev-environment/scripts:/app/dev-scripts:ro
+      - ./examples:/app/examples:ro
+      # Persistent output volume
+      - client-output:/app/output
     working_dir: /app
     networks:
       - log-collection-network
@@ -111,17 +133,21 @@ volumes:
     driver: local
   log-server1-tmp:
     driver: local
+  log-server1-output:
+    driver: local
   log-server2-data:
     driver: local
   log-server2-tmp:
+    driver: local
+  log-server2-output:
     driver: local
   log-server3-data:
     driver: local
   log-server3-tmp:
     driver: local
-  client-output:
+  log-server3-output:
     driver: local
-  client-examples:
+  client-output:
     driver: local
 
 # Network for inter-container communication

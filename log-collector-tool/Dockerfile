@@ -21,24 +21,13 @@ RUN addgroup -g 2000 logcollector && \
 # Set working directory
 WORKDIR /app
 
-# Create necessary directories first
-RUN mkdir -p scripts dev-scripts
-
-# Copy package files first for better caching
-COPY log-collector-skill/scripts/package*.json ./scripts/
-
-# Install dependencies
-RUN cd scripts && npm install
-
-# Copy specific application files (avoid copying entire directory)
-COPY log-collector-skill/scripts/ ./scripts/
-COPY dev-environment/scripts/ ./dev-scripts/
-COPY examples/ ./scripts/examples/
-
-# Create necessary directories with proper permissions
-RUN mkdir -p scripts/output scripts/examples /var/log/app /tmp/logs /app/.ssh && \
-    chmod 755 scripts/output scripts/examples /var/log/app /tmp/logs /app/.ssh && \
+# Create necessary directories for mounting
+RUN mkdir -p /app/scripts /app/dev-scripts /app/examples /app/output /var/log/app /tmp/logs /app/.ssh && \
+    chmod 755 /app/scripts /app/dev-scripts /app/examples /app/output /var/log/app /tmp/logs /app/.ssh && \
     chown -R logcollector:logcollector /app
+
+# Install Node.js dependencies placeholder (will be handled via mounted volume or init script)
+# Dependencies will be installed at runtime when volume is mounted
 
 # Make scripts executable (check existence first)
 RUN find /app -name "*.js" -type f -exec chmod +x {} \; 2>/dev/null || true && \
@@ -52,11 +41,11 @@ RUN mkdir -p /run/sshd && \
 COPY docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Set environment variables (externalized for Docker Hub)
+# Set environment variables (mount mode compatible)
 ENV NODE_ENV=production \
     TZ=UTC \
-    INPUT_FOLDER=./scripts/examples \
-    OUTPUT_FOLDER=./scripts/output \
+    INPUT_FOLDER=/app/examples \
+    OUTPUT_FOLDER=/app/output \
     SSH_HOST_1= \
     SSH_HOST_2= \
     SSH_HOST_3= \
