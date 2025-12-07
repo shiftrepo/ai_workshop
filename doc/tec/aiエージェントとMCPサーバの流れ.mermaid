@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#FFFFFF' }}}%%
+sequenceDiagram
+    participant クライアント
+    participant AIエージェント
+    participant LLM
+    participant MCPサーバ
+
+    Note over クライアント, AIエージェント: クライアント/エージェントは
+    Note over クライアント, AIエージェント: 「利用可能な機能リスト」
+    Note over クライアント, AIエージェント: (MCPサーバで実行可能な操作)
+    Note over クライアント, AIエージェント: をあらかじめ認識している
+
+    Note over クライアント: 業務指示 (テキスト入力)
+    クライアント->>AIエージェント: "先月のA社宛の請求書を作成して、Bさんにメールで送付して"
+    activate AIエージェント
+
+    AIエージェント->>AIエージェント: 1. 指示と「利用可能な機能リスト」を照合
+    Note over AIエージェント: (機能: 'create_invoice', 'send_email' が該当)
+
+    AIエージェント->>LLM: 2. 思考・行動計画 (指示 + 利用可能な機能リストを提示)
+    activate LLM
+    Note over LLM: 利用可能な機能を前提に指示を解釈し、
+    Note over LLM: どの機能を使うべきか計画
+    LLM-->>AIエージェント: 3. 行動計画 (例: [create_invoice, send_email] の実行指示)
+    deactivate LLM
+
+    Note over AIエージェント: 計画に基づき、MCPサーバへ操作を指示
+    AIエージェント->>MCPサーバ: 4. 操作指示 (請求書作成＆メール送信タスク)
+    activate MCPサーバ
+    
+    MCPサーバ->>MCPサーバ: 5. 定義されたローカル操作実行 (DB検索 → PDF作成 → メールAPI)
+    
+    MCPサーバ-->>AIエージェント: 6. 実行結果 (例: 成功)
+    deactivate MCPサーバ
+
+    Note over AIエージェント: 結果を基に「思考」
+    AIエージェント->>LLM: 7. 最終報告の生成 (実行結果を渡す)
+    activate LLM
+    LLM-->>AIエージェント: 8. 報告テキスト (例: "承知しました。A社宛の請求書をBさんに送信しました。")
+    deactivate LLM
+
+    AIエージェント->>クライアント: 9. 実行報告 (テキスト表示)
+    deactivate AIエージェント
