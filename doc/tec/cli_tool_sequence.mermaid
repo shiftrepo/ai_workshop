@@ -1,0 +1,85 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#ffffff',
+    'primaryTextColor': '#000000',
+    'primaryBorderColor': '#000000',
+    'lineColor': '#000000',
+    'signalColor': '#000000',
+    'signalTextColor': '#000000',
+    'noteBkgColor': '#ffffff',
+    'noteTextColor': '#000000',
+    'noteBorderColor': '#000000',
+    'actorBorder': '#000000',
+    'actorTextColor': '#000000',
+    'sequenceNumberColor': '#ffffff',
+    'sequenceNumberBkgColor': '#000000'
+  }
+}}%%
+
+sequenceDiagram
+    autonumber
+    %% --- 登場人物の定義 ---
+    actor User as ユーザ
+    participant ClaudeCode as Claude Code<br>(アプリ本体)
+    participant SubAgent as サブエージェント<br>(専門知識・思考の型)
+    participant Skill as Skill<br>(固定化プロセス)
+    participant MCP as MCPサーバ<br>(実働ツール)
+    participant LLM as LLM<br>(AIの頭脳)
+
+    %% --- 1. 準備フェーズ ---
+    rect rgb(235, 245, 255)
+        note right of User: 【準備】思考の型と手順を登録<br>(LLMの弱点を補う準備)
+
+        ClaudeCode->>SubAgent: 1. 登録：専門家の思考アプローチ
+        note right of SubAgent: ユーザが詳しくない領域でも<br>「どう考えるべきか」の<br>知識セットを定義しておく
+
+        ClaudeCode->>Skill: 2. 登録：定型プロセス(手順)
+        note right of Skill: LLMがブレやすい「手順」を<br>固定化して定義しておく
+
+        ClaudeCode->>MCP: 3. 登録：道具(ツール)の定義
+    end
+
+    %% --- 2. 実行フェーズ ---
+    rect rgb(255, 250, 240)
+        note right of User: 【実行】コンテキスト支援の流れ
+
+        User->>ClaudeCode: 4. 入力：「〇〇領域の課題を解決して」
+        
+        %% --- サブエージェントによる支援 ---
+        note right of ClaudeCode: まず、解決に必要な<br>「専門家の型」を選ぶ
+
+        ClaudeCode->>LLM: 5. 相談：どのサブエージェントが適切か？
+        LLM-->>ClaudeCode: 6. 選択：サブエージェントA(専門家)
+
+        ClaudeCode->>SubAgent: 7. 適用：専門コンテキストの展開
+        
+        note right of SubAgent: 【構造化支援①】<br>LLMに対し、その領域特有の<br>「解決アプローチ」を注入する
+
+        rect rgb(245, 245, 245)
+            note right of SubAgent: 専門家の視点に基づいて<br>適切な手順(Skill)を選ぶ
+
+            SubAgent->>LLM: 8. 提示：このアプローチで使えるSkillは？
+            LLM-->>SubAgent: 9. 選択：Skill B(標準手順)を採用
+
+            %% --- Skillによる支援 ---
+            SubAgent->>Skill: 10. 開始：プロセスの固定化実行
+            
+            note right of Skill: 【構造化支援②】<br>LLMに自由にやらせず<br>「決まった手順」で制御する
+
+            Skill->>MCP: 11. 利用：道具の使用
+            MCP-->>Skill: 12. 返却：実データ
+            
+            note right of Skill: 手順に従い<br>必要な情報だけを抽出
+
+            Skill-->>SubAgent: 13. 完了：最適化された情報
+        end
+
+        SubAgent->>LLM: 14. 送信：専門的視点 + 構造化されたデータ
+        
+        note right of LLM: 支援されたコンテキストのおかげで<br>高度で正確な判断ができる
+
+        LLM-->>ClaudeCode: 15. 受信：回答生成
+    end
+
+    ClaudeCode-->>User: 16. 表示：AIからの回答
