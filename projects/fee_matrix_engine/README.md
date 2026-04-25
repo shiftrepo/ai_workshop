@@ -176,6 +176,18 @@ fee = BASE_FEE[(app_type, applicant)] * PRIORITY_MULT[priority]
 
 ---
 
+## 📄 詳細ドキュメント
+
+| ドキュメント | 内容 |
+|-------------|------|
+| [SPEC.md](./SPEC.md) | テーブル駆動設計 × 段階パイプラインの詳細仕様書 |
+| [MATRIX_SPEC.md](./MATRIX_SPEC.md) | 2軸マトリックス × セル内複数条件 設計仕様書 |
+| [PATTERNS.md](./PATTERNS.md) | テーブル駆動 vs パイプライン 比較解説（コード例付き） |
+| [THREAD.md](./THREAD.md) | Slack スレッド全記録（96メッセージ） |
+
+### 🔗 設計パターン解説
+- **テーブル駆動 vs パイプライン** の違いと向き不向きについては → [SPEC.md § テーブル駆動設計とは](./SPEC.md#1-テーブル駆動設計とは)
+
 ---
 
 ## Slack やり取り全記録
