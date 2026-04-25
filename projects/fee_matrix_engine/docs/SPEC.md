@@ -19,14 +19,15 @@
 ## 目次
 
 1. [テーブル駆動設計とは](#1-テーブル駆動設計とは)
-2. [段階パイプライン — 11ステップ](#2-段階パイプライン--11ステップ)
-3. [基本料金テーブル](#3-基本料金テーブル)
-4. [係数テーブル](#4-係数テーブル)
-5. [追加料金テーブル](#5-追加料金テーブル)
-6. [割引テーブル](#6-割引テーブル)
-7. [季節・繁忙期係数](#7-季節繁忙期係数)
-8. [算出例 — 5ケース](#8-算出例--5ケース)
-9. [パターン数分析](#9-パターン数分析)
+2. [パイプラインとは](#2-パイプラインとは)
+3. [段階パイプライン — 11ステップ](#3-段階パイプライン--11ステップ)
+4. [基本料金テーブル](#4-基本料金テーブル)
+5. [係数テーブル](#5-係数テーブル)
+6. [追加料金テーブル](#6-追加料金テーブル)
+7. [割引テーブル](#7-割引テーブル)
+8. [季節・繁忙期係数](#8-季節繁忙期係数)
+9. [算出例 — 5ケース](#9-算出例--5ケース)
+10. [パターン数分析](#10-パターン数分析)
 
 ---
 
@@ -79,7 +80,112 @@ fee = BASE_FEE_TABLE[(app_type, applicant_type)]
 
 ---
 
-## 2. 段階パイプライン — 11ステップ
+## 2. パイプラインとは
+
+### 概念：データが「工程」を順番に通過する
+
+パイプラインとは、**あるデータを複数の処理ステップに順番に通す**設計パターンです。  
+各ステップは「前のステップの出力を受け取り、処理して次のステップへ渡す」だけの独立した関数です。
+
+```
+入力データ
+  │
+  ▼
+[Step 1: 処理A]  ← 出力1
+  │
+  ▼
+[Step 2: 処理B]  ← 出力2（出力1を入力として受け取る）
+  │
+  ▼
+[Step 3: 処理C]  ← 出力3（出力2を入力として受け取る）
+  │
+  ▼
+最終出力
+```
+
+### このシステムで「何がパイプライン」なのか
+
+料金算出エンジンでは、**1つの申請（リクエスト）が11個のステップを順番に通過**します。
+
+```python
+# fee_engine.py — パイプラインの実体（抜粋）
+
+def calculate_fee(request: FeeRequest) -> FeeBreakdown:
+
+    # ── Step 1: 基本料金をテーブルから取得 ──────────────────
+    base = BASE_FEE_TABLE[(request.app_type, request.applicant_type)]
+    # 例: ("F", "法人") → ¥220,000
+
+    # ── Step 2: 地域係数を掛ける ────────────────────────────
+    after_region = int(base * REGION_MULTIPLIER[request.region])
+    # 例: ¥220,000 × 1.15（政令市） → ¥253,000
+
+    # ── Step 3: 優先度係数を掛ける ──────────────────────────
+    after_priority = int(after_region * PRIORITY_MULTIPLIER[request.priority])
+    # 例: ¥253,000 × 1.00（通常） → ¥253,000
+
+    # ── Step 4: 複雑度係数を掛ける ──────────────────────────
+    after_complexity = int(after_priority * COMPLEXITY_MULTIPLIER[request.complexity])
+    # 例: ¥253,000 × 2.10（超複雑） → ¥531,300
+
+    # ── Step 5: 事業規模係数を掛ける（法人のみ）────────────
+    if request.applicant_type == "法人":
+        after_scale = int(after_complexity * BUSINESS_SCALE_MULTIPLIER[request.scale])
+    elif request.applicant_type == "行政":
+        after_scale = int(after_complexity * BUSINESS_SCALE_MULTIPLIER["MICRO"])  # 優遇固定
+    else:
+        after_scale = after_complexity  # 個人はスキップ
+    # 例: ¥531,300 × 1.30（中規模法人） → ¥690,690
+
+    # ── Step 6: 季節・繁忙期係数を掛ける ───────────────────
+    after_season = int(after_scale * seasonal_multiplier(request.submission_date))
+    # 例: ¥690,690 × 1.20（3月） → ¥828,828
+
+    # ── Step 7: 追加料金を加算 ──────────────────────────────
+    additional = _calc_additional_fees(request)  # フラグを1つずつチェック
+    # 例: 法務¥50,000 + 環境¥100,000 + 書類超過¥125,800 = ¥275,800
+
+    # ── Step 8: 小計 ────────────────────────────────────────
+    subtotal = after_season + additional
+    # 例: ¥828,828 + ¥275,800 = ¥1,104,628
+
+    # ── Step 9: リピーター割引を引く ────────────────────────
+    repeat_discount = int(subtotal * repeat_discount_rate(request.past_applications))
+    after_repeat = subtotal - repeat_discount
+    # 例: ¥1,104,628 × 0%（初回） → ¥1,104,628
+
+    # ── Step 10: パッケージ割引を引く ───────────────────────
+    pkg_discount = int(after_repeat * package_discount_rate(request.sibling_count))
+    after_pkg = after_repeat - pkg_discount
+    # 例: ¥1,104,628 × 8% → ▲¥88,370 → ¥1,016,258
+
+    # ── Step 11: 100円単位に切り上げて確定 ──────────────────
+    final_fee = ((after_pkg + 99) // 100) * 100
+    # 例: ¥1,016,258 → ¥1,016,300
+
+    return FeeBreakdown(steps=[base, after_region, ..., final_fee])
+```
+
+### なぜパイプライン構造にするのか
+
+| 課題 | パイプラインでの解決策 |
+|------|----------------------|
+| 係数が8種類あり順序が重要 | ステップの順番がコード構造で自明になる |
+| バグがどこで発生したか特定しにくい | 各Stepの入出力を `FeeBreakdown` に記録→ 即座に特定可能 |
+| 「季節係数の前か後かで追加料金を足す」が変わりやすい | ステップを差し替え・並び替えるだけで対応できる |
+| 個別のステップだけテストしたい | 各Step関数が独立しているため単独でユニットテスト可能 |
+
+### パイプラインの 3 原則（このシステムの場合）
+
+| 原則 | 内容 |
+|------|------|
+| **① 一方向**（Unidirectional） | 必ず Step1 → Step11 の順に進む。逆流・スキップ（条件付き除く）なし |
+| **② 非破壊**（Non-destructive） | 各Stepは元データを書き換えず、新しい値を変数に代入して次に渡す |
+| **③ 記録可能**（Auditable） | `FeeBreakdown` オブジェクトが全Stepの中間値を保持。算出根拠を完全に再現できる |
+
+---
+
+## 3. 段階パイプライン — 11ステップ
 
 ```
 基本料金 → [Step1] → 地域係数 → [Step2] → 優先度係数 → [Step3]
@@ -113,7 +219,7 @@ fee = BASE_FEE_TABLE[(app_type, applicant_type)]
 
 ---
 
-## 3. 基本料金テーブル
+## 4. 基本料金テーブル
 
 `BASE_FEE_TABLE` — 申請種別 × 申請者区分（18パターン）
 
@@ -133,7 +239,7 @@ fee = BASE_FEE_TABLE[(app_type, applicant_type)]
 
 ---
 
-## 4. 係数テーブル
+## 5. 係数テーブル
 
 ### REGION_MULTIPLIER — 地域係数（Step 2）
 
@@ -174,7 +280,7 @@ fee = BASE_FEE_TABLE[(app_type, applicant_type)]
 
 ---
 
-## 5. 追加料金テーブル
+## 6. 追加料金テーブル
 
 ### ADDITIONAL_FEE — フラット追加料金（Step 7）
 
@@ -199,7 +305,7 @@ fee = BASE_FEE_TABLE[(app_type, applicant_type)]
 
 ---
 
-## 6. 割引テーブル
+## 7. 割引テーブル
 
 ### repeat_discount_rate() — リピーター割引（Step 9）
 
@@ -226,7 +332,7 @@ fee = BASE_FEE_TABLE[(app_type, applicant_type)]
 
 ---
 
-## 7. 季節・繁忙期係数
+## 8. 季節・繁忙期係数
 
 `seasonal_multiplier(submission_date)` — Step 6
 
@@ -247,7 +353,7 @@ fee = BASE_FEE_TABLE[(app_type, applicant_type)]
 
 ---
 
-## 8. 算出例 — 5ケース
+## 9. 算出例 — 5ケース
 
 ### ケース共通凡例
 
@@ -279,7 +385,7 @@ fee = BASE_FEE_TABLE[(app_type, applicant_type)]
 
 ---
 
-## 9. パターン数分析
+## 10. パターン数分析
 
 ### 変数・フラグ一覧
 
