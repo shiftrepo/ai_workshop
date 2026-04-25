@@ -180,8 +180,11 @@ fee = BASE_FEE[(app_type, applicant)] * PRIORITY_MULT[priority]
 
 ## Slack やり取り全記録
 
-このプロジェクトは Slack 上でのユーザーと Hermes Agent のリアルタイムなやり取りを通じて作成されました。  
-以下はスレッド全体のスクリーンショットです（60メッセージ）。
+このプロジェクトは Slack 上でのユーザーと Hermes Agent のリアルタイムなやり取りを通じて作成されました。
+
+📄 **[スレッド全記録を読む → THREAD.md](./THREAD.md)**（96メッセージ、Markdown形式）
+
+以下はスレッド全体のスクリーンショットです。
 
 ![Slack スレッド — 料金算出マトリックスエンジン](./slack_thread.png)
 
