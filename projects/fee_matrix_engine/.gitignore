@@ -1,0 +1,4 @@
+# fee_matrix_engine 配下の data/ はバージョン管理対象とする
+# ルートの .gitignore で data/ が除外されているため、ここで上書き解除
+!data/
+!data/**
