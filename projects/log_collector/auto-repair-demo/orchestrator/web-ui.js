@@ -33,7 +33,7 @@ const APP_LOG = path.join(DEMO_APP, 'logs', 'app.log');
 const REPO_ROOT = path.join(__dirname, '..', '..', '..', '..');
 const REPO_SLUG = process.env.GH_REPO || 'shiftrepo/ai_workshop';
 
-const STATUSES = ['情報収集中', '解析待ち', '改修案作成待ち', '要承認', 'PR作成待ち', '対応完了'];
+const STATUSES = ['情報収集中', 'インシデント検出', '解析済み', '要承認', 'PR作成待ち', '対応完了'];
 const EDITABLE_FIELDS = new Set(['status', 'approver', 'assignee', 'note']);
 
 const recentLogs = [];
