@@ -71,7 +71,7 @@ node test-real-ssh.js
 | B | タイムスタンプ | インシデント発生時刻 |
 | C | インシデント概要 | TrackID等を含む説明文 |
 | D | 担当者 | 担当者名 |
-| E | ステータス | **「情報収集中」** のタスクのみ収集対象 |
+| E | ステータス | 既定では **「情報収集中」** のタスクのみ収集対象 (環境変数 `FILTER_STATUS` で変更可。auto-repair-demo では「インシデント検出」を指定) |
 | F | 調査状況 | 調査メモ |
 
 ---
@@ -95,3 +95,53 @@ node test-real-ssh.js
 - [開発環境ガイド](dev-environment/docker/DEPLOYMENT_GUIDE.md)
 - [SSHキー作成と登録](../../doc/SSHキー作成と登録.md)
 - [リポジトリ全体の README に戻る](../../README.md)
+
+---
+
+## 🤖 Issue #22 — AI 自動改修デモ
+
+Web アプリ (RoboMart) のバグ発火 → ログ収集 → AI 一次解析 → AI 改修案提示 → 人手承認 → PR 発行 までを一気通貫で流すデモ。**Office不要**、ブラウザだけで完結する。
+
+### アクセス URL
+
+| 用途 | URL |
+|------|-----|
+| RoboMart Web アプリ (バグ発火用) | https://hermes-dev.shift-ai-adoption.org:8888 (内部: `http://localhost:3002`) |
+| Incident Console (Excel 閲覧+編集+操作) | https://hermes-dev.shift-ai-adoption.org:8081 (内部: `http://localhost:4001`) |
+
+### 全体像を図で見る
+
+構成・状態遷移・シーケンスは mermaid 図で整理しています:
+
+👉 **[auto-repair-demo/ARCHITECTURE.md](auto-repair-demo/ARCHITECTURE.md)**
+
+### クイックスタート
+
+```bash
+# 事前準備 (初回のみ)
+cd projects/log_collector/demo-app && npm install
+cd ../auto-repair-demo/orchestrator && npm install && node scripts/gen-template.js
+# Docker SSH ログサーバ (実ログ収集する場合)
+cd ../../dev-environment/docker && ./setup-containers.sh start
+
+# デモ起動 (RoboMart + watchdog + Web UI を一括起動)
+cd ../../auto-repair-demo/orchestrator && ./run-demo.sh
+```
+
+1. ブラウザで **RoboMart** を開き、在庫切れ商品クリック or 請求書払い注文 → バグ発火
+2. **Incident Console** に `インシデント検出` として自動起票される
+3. 行の **▶ 調査＆改修案** ボタン → ログ収集→解析→改修案 を実行し `要承認` で停止 (数分)
+4. 改修案を確認 → **承認者**を記入し**ステータス**を `PR作成待ち` に変更 → `pr-publisher` が自動で PR 発行
+
+デモ手順・操作・設定・トラブルシュートの詳細は **[auto-repair-demo/README.md](auto-repair-demo/README.md)** を参照。
+
+### 関連ドキュメント
+
+| ドキュメント | 内容 |
+|-------------|------|
+| [auto-repair-demo/ARCHITECTURE.md](auto-repair-demo/ARCHITECTURE.md) | 構成図・状態遷移図・シーケンス図 (mermaid) |
+| [auto-repair-demo/README.md](auto-repair-demo/README.md) | デモ実行手順・Web UI 操作・設定・トラブルシュート |
+| [auto-repair-demo/SPEC.md](auto-repair-demo/SPEC.md) | 全体設計・Excel列定義・状態機械・エージェント責務 |
+| [auto-repair-demo/DEMO_FLOW.md](auto-repair-demo/DEMO_FLOW.md) | E2E 時系列シナリオ (演者トーク付き脚本) |
+| [demo-app/README.md](demo-app/README.md) | RoboMart 単体 (バグ2種・ログ形式) |
+| [../../.claude/agents/](../../.claude/agents/) | サブエージェント定義 3本 |

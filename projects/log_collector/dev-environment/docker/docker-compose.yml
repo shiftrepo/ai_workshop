@@ -21,6 +21,8 @@ services:
     volumes:
       - log-server1-data:/var/log/app
       - log-server1-tmp:/tmp/logs
+      # Issue #22: RoboMart demo-app のログを server1 の /tmp/logs/ に相乗り
+      - ../../demo-app/logs:/tmp/logs/demo-app:ro
     restart: unless-stopped
     networks:
       - log-collection-network
@@ -134,9 +136,11 @@ volumes:
     driver: local
 
 # Network for inter-container communication
+# 注: 172.20.0.0/16 は openhuman 等が使用中で衝突するため 172.28.0.0/16 に変更。
+#     このデモに固定サブネットは必須ではないが、既存範囲(172.17〜172.27)を避ける。
 networks:
   log-collection-network:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/16
+        - subnet: 172.28.0.0/16

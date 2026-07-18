@@ -1,0 +1,16 @@
+{
+  "name": "robomart-demo-app",
+  "version": "0.1.0",
+  "description": "架空のロボット販売ECサイト RoboMart — Issue #22 自動改修デモ用",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "watchdog": "node watchdog.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2"
+  }
+}

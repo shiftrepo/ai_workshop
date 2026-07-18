@@ -21,25 +21,18 @@ RUN addgroup -g 2000 logcollector && \
 # Set working directory
 WORKDIR /app
 
-# Copy package files first for better caching
-COPY client/package*.json ./client/
-
-# Install dependencies
-RUN cd client && npm install
-
-# Copy client application files
-COPY client/ ./client/
-
-# Copy dev-environment files
+# Copy dev-environment files (log generators, startup script, SSH keys)
+# 注: このコンテナは「SSHでログを引かれる対象サーバ」役。Node アプリ本体は不要で、
+#     ログ生成スクリプトと SSH 受付だけを行う (client/ ディレクトリは廃止済み)。
 COPY dev-environment/ ./dev-environment/
 
 # Create necessary directories with proper permissions
-RUN mkdir -p client/output client/examples /var/log/app /tmp/logs && \
-    chmod 777 client/output client/examples /var/log/app /tmp/logs && \
+RUN mkdir -p /var/log/app /tmp/logs && \
+    chmod 777 /var/log/app /tmp/logs && \
     chown -R logcollector:logcollector /app
 
 # Make scripts executable (only for files that exist)
-RUN chmod +x client/log-collection-skill.js dev-environment/scripts/generate-logs.sh dev-environment/scripts/startup.sh 2>/dev/null || true
+RUN chmod +x dev-environment/scripts/generate-diverse-logs.sh dev-environment/scripts/generate-logs.sh dev-environment/scripts/startup.sh 2>/dev/null || true
 
 # Configure SSH properly for container use
 RUN mkdir -p /run/sshd && \

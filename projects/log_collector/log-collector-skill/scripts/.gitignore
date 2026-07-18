@@ -1,0 +1,6 @@
+node_modules/
+output/
+package-lock.json
+
+# 親 .gitignore の *.json 除外を打ち消し、log_collector の package.json を追跡する
+!package.json

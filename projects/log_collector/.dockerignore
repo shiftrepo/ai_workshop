@@ -22,11 +22,15 @@ docs/
 .env.production
 
 # SSH keys (security - never include in Docker images)
-**/*_key
-**/*_key.pub
-**/*.pem
 **/id_rsa*
-dev-environment/sample-data/
+# sample-data の秘密鍵・不要ファイルは個別に除外 (ディレクトリごと除外すると中身を再包含できないため)
+dev-environment/sample-data/log_collector_key
+dev-environment/sample-data/log_collector_key_pem
+dev-environment/sample-data/log_collector_key_pem.pub
+dev-environment/sample-data/mock_ssh_key.pem
+dev-environment/sample-data/mock_ssh_key.pem.pub
+dev-environment/sample-data/task_management_sample.xlsx
+# → 残るのは log_collector_key.pub のみ (コンテナの authorized_keys 用)。デモ専用の使い捨て公開鍵。
 
 # Development files
 .vscode/

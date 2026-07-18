@@ -1,5 +1,7 @@
 # claude
-.claude/
+.claude/*
+# Issue #22: サブエージェント定義はリポジトリで共有
+!.claude/agents/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
