@@ -105,7 +105,7 @@ async function runPrPublisher(row, opts = {}) {
   if (opts.dryRun) {
     return { pr_url: `[dry-run] PR would be created for ${row.id}` };
   }
-  const { stdout } = await invokeClaude('pr-publisher', JSON.stringify(input), { timeoutMs: 600000 });
+  const { stdout } = await invokeClaude('pr-publisher', JSON.stringify(input));
   const parsed = extractJson(stdout);
   const pr_url = parsed && parsed.pr_url ? parsed.pr_url : (stdout.match(/https:\/\/github\.com\/[^\s)]+\/pull\/\d+/) || [stdout.trim()])[0];
   return { pr_url };

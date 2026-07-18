@@ -14,9 +14,10 @@ auto-repair-demo/
 │   └── incident_management.xlsx            実行時に生成 (状態機械の唯一の真実)
 ├── orchestrator/
 │   ├── excel-driver.js              Excel 状態機械の司令塔
-│   ├── web-ui.js                    Excel 閲覧+編集WEBコンソール (port 4000)
+│   ├── web-ui.js                    Excel 閲覧+編集WEBコンソール (port 4001)
 │   ├── web-ui.html                  Web UI フロント (単一ページ)
 │   ├── run-demo.sh                  E2E ワンショット起動
+│   ├── demo-config.json             モデル/effort/タイムアウト設定 (親CC非依存)
 │   ├── lib/excel-io.js              Excel 書き込みのシリアライザ
 │   ├── lib/subagent-invoker.js      claude --agent 子プロセス起動
 │   ├── scripts/gen-template.js      雛形 xlsx 生成
@@ -36,6 +37,31 @@ auto-repair-demo/
 | Incident Console (Excel Web UI) | http://ec2-54-88-196-71.compute-1.amazonaws.com:4001 | `http://localhost:4001` | 4001 |
 
 ポート選定は EC2 の SG (`SG-SHIFT-hermes-dev`) が inbound 開放している範囲から未使用ポートを選択。
+
+## モデル/応答速度の設定 (demo-config.json)
+
+サブエージェント (incident-analyzer / repair-planner / pr-publisher) のモデル・推論 effort・タイムアウトは
+`orchestrator/demo-config.json` **1ファイルだけ**で調整する。**親の Claude Code セッションの `CLAUDE_EFFORT`
+(xhigh 等) からは完全に独立**して動作する (子プロセスの `CLAUDE_EFFORT` を config 値で上書きするため)。
+
+```json
+{
+  "model": "us.anthropic.claude-sonnet-5",
+  "defaultEffort": "low",
+  "agents": {
+    "incident-analyzer": { "effort": "low",  "timeoutMs": 180000 },
+    "repair-planner":     { "effort": "low",  "timeoutMs": 180000 },
+    "pr-publisher":       { "effort": "low",  "timeoutMs": 600000 }
+  }
+}
+```
+
+- **effort**: `low` / `medium` / `high` / `xhigh` / `max`。デモは応答速度優先で **`low` 推奨**
+  (incident-analyzer が xhigh 約60秒 → low 約19秒に短縮。解析/改修案/PR発行は重い推論を要さないため品質は十分)
+- **timeoutMs**: そのエージェントが超過したら中断する上限。pr-publisher は git/gh 手順が多いので長め (600秒)
+- **model**: エージェント個別に `agents.<name>.model` で上書き可能。無ければ最上位 `model` を使用
+
+変更は次回のエージェント起動から即反映される (web-ui の再起動不要)。
 
 ## クイックスタート
 

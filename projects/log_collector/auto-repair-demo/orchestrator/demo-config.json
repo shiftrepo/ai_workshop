@@ -1,0 +1,10 @@
+{
+  "_comment": "auto-repair-demo 専用のモデル/effort/タイムアウト設定。親 Claude Code セッションの CLAUDE_EFFORT からは独立して動作する。デモの応答速度をここだけで調整できる。",
+  "model": "us.anthropic.claude-sonnet-5",
+  "defaultEffort": "low",
+  "agents": {
+    "incident-analyzer": { "effort": "low",  "timeoutMs": 180000 },
+    "repair-planner":     { "effort": "low",  "timeoutMs": 180000 },
+    "pr-publisher":       { "effort": "low",  "timeoutMs": 600000 }
+  }
+}

@@ -1,13 +1,39 @@
 const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+// このツール専用の設定 (親 Claude Code セッションの CLAUDE_EFFORT/ANTHROPIC_MODEL から独立)
+const CONFIG_PATH = path.join(__dirname, '..', 'demo-config.json');
+
+function loadConfig() {
+  try {
+    return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+  } catch {
+    return { model: 'us.anthropic.claude-sonnet-5', defaultEffort: 'low', agents: {} };
+  }
+}
+
+function resolveSettings(agentName, opts = {}) {
+  const cfg = loadConfig();
+  const agentCfg = (cfg.agents && cfg.agents[agentName]) || {};
+  return {
+    model: opts.model || agentCfg.model || cfg.model || 'us.anthropic.claude-sonnet-5',
+    effort: opts.effort || agentCfg.effort || cfg.defaultEffort || 'low',
+    timeoutMs: opts.timeoutMs || agentCfg.timeoutMs || 180000,
+  };
+}
 
 function invokeClaude(agentName, input, opts = {}) {
-  const timeoutMs = opts.timeoutMs || 180000;
-  const model = opts.model || process.env.CLAUDE_MODEL || 'us.anthropic.claude-sonnet-5';
+  const { model, effort, timeoutMs } = resolveSettings(agentName, opts);
   return new Promise((resolve, reject) => {
-    const args = ['--agent', agentName, '--print', '--model', model];
+    const args = ['--agent', agentName, '--print', '--model', model, '--effort', effort];
+    // このツールは親セッションの CLAUDE_EFFORT を継承しない (独立設定)。
+    // AWS/Bedrock 認証系の環境変数は必要なので、effort 系だけを config 値で上書きする。
+    const childEnv = { ...process.env, CLAUDE_EFFORT: effort };
+    delete childEnv.CLAUDE_CODE_CHILD_SESSION; // 親セッションの effort 引き継ぎを断つ
     const child = spawn('claude', args, {
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: process.env,
+      env: childEnv,
     });
     let stdout = '';
     let stderr = '';
@@ -22,7 +48,7 @@ function invokeClaude(agentName, input, opts = {}) {
     child.on('close', code => {
       clearTimeout(timer);
       if (code !== 0) return reject(new Error(`agent ${agentName} exited ${code}\nstderr: ${stderr}`));
-      resolve({ stdout, stderr });
+      resolve({ stdout, stderr, effort, model });
     });
     child.stdin.write(typeof input === 'string' ? input : JSON.stringify(input));
     child.stdin.end();
@@ -42,4 +68,4 @@ function extractJson(text) {
   }
 }
 
-module.exports = { invokeClaude, extractJson };
+module.exports = { invokeClaude, extractJson, loadConfig, resolveSettings };
