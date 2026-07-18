@@ -2,10 +2,14 @@
 
 RoboMart (架空のロボット販売ECサイト) に仕込まれたバグを、監視 → ログ収集 → AI 一次解析 → AI 改修案提示 → 承認 → PR 発行まで一気通貫でデモするための資材集。
 
+> 📐 **全体像を図で見る** → [ARCHITECTURE.md](ARCHITECTURE.md) (mermaid によるサービス構成図・状態遷移図・シーケンス図)
+> 📋 詳細設計 → [SPEC.md](SPEC.md) / 時系列脚本 → [DEMO_FLOW.md](DEMO_FLOW.md)
+
 ## 構成
 
 ```
 auto-repair-demo/
+├── ARCHITECTURE.md                  構成図・状態遷移図・シーケンス図 (mermaid)
 ├── SPEC.md                          全体設計仕様
 ├── DEMO_FLOW.md                     E2E 時系列シナリオ
 ├── README.md                        このファイル
@@ -31,12 +35,13 @@ auto-repair-demo/
 
 ## 公開URL
 
-| 用途 | 外部URL | ローカル代替 | ポート |
-|------|---------|-------------|:--:|
-| RoboMart Web アプリ | http://ec2-54-88-196-71.compute-1.amazonaws.com:3002 | `http://localhost:3002` | 3002 |
-| Incident Console (Excel Web UI) | http://ec2-54-88-196-71.compute-1.amazonaws.com:4001 | `http://localhost:4001` | 4001 |
+| 用途 | 外部URL (HTTPS/Caddy経由) | ローカル代替 | 内部ポート |
+|------|--------------------------|-------------|:--:|
+| RoboMart Web アプリ | https://hermes-dev.shift-ai-adoption.org:8888 | `http://localhost:3002` | 3002 |
+| Incident Console (Excel Web UI) | https://hermes-dev.shift-ai-adoption.org:8081 | `http://localhost:4001` | 4001 |
 
-ポート選定は EC2 の SG (`SG-SHIFT-hermes-dev`) が inbound 開放している範囲から未使用ポートを選択。
+外部公開は Caddy (`/etc/caddy/Caddyfile`) がリバースプロキシ + TLS 終端。
+`:8888→localhost:3002`、`:8081→localhost:4001`。内部ポートは EC2 SG (`SG-SHIFT-hermes-dev`) の開放範囲から選択。
 
 ## モデル/応答速度の設定 (demo-config.json)
 
@@ -73,7 +78,7 @@ cd projects/log_collector/auto-repair-demo/orchestrator
 # 1. RoboMart 起動 + バグ発火 + Web UI + 状態機械開始 (一発)
 ./run-demo.sh
 
-# 2. ブラウザで http://ec2-54-88-196-71.compute-1.amazonaws.com:4001 を開く
+# 2. ブラウザで https://hermes-dev.shift-ai-adoption.org:8081 を開く
 #    (内部なら http://localhost:4001 でも同じ)
 #    → Excel の中身がテーブル表示され、3秒毎に自動更新される
 
@@ -128,7 +133,7 @@ cd projects/log_collector/auto-repair-demo/orchestrator
 ```bash
 cd projects/log_collector/auto-repair-demo/orchestrator
 node web-ui.js
-# 外部URL: http://ec2-54-88-196-71.compute-1.amazonaws.com:4001
+# 外部URL: https://hermes-dev.shift-ai-adoption.org:8081 (Caddy経由)
 # 内部URL: http://localhost:4001
 # ポート変更: WEB_UI_PORT=4002 node web-ui.js
 ```
@@ -169,6 +174,7 @@ node excel-driver.js --dry-run --once
 
 ## 詳細
 
-- 全体設計・状態遷移・エージェント責務 → `SPEC.md`
-- E2E 時系列 (どの列がいつ書かれるか) → `DEMO_FLOW.md`
+- 構成図・状態遷移図・シーケンス図 (mermaid) → [ARCHITECTURE.md](ARCHITECTURE.md)
+- 全体設計・状態遷移・エージェント責務 → [SPEC.md](SPEC.md)
+- E2E 時系列 (どの列がいつ書かれるか) → [DEMO_FLOW.md](DEMO_FLOW.md)
 - 実装計画・決定事項 → Issue #22 コメント
