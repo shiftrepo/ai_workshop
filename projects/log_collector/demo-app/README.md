@@ -6,14 +6,14 @@
 
 | 用途 | 外部URL | ローカル代替 |
 |------|---------|-------------|
-| RoboMart トップ | https://hermes-dev.shift-ai-adoption.org:8888/ | `http://localhost:3002/` |
-| 商品一覧 API | https://hermes-dev.shift-ai-adoption.org:8888/api/robots | `http://localhost:3002/api/robots` |
+| RoboMart トップ | ポート **8888** (HTTPS) `/` | `http://localhost:3002/` |
+| 商品一覧 API | ポート **8888** (HTTPS) `/api/robots` | `http://localhost:3002/api/robots` |
 
 ## 起動
 
 ```bash
 npm install
-node server.js               # 内部: http://localhost:3002 / 外部: https://hermes-dev.shift-ai-adoption.org:8888 (Caddy経由)
+node server.js               # 内部: http://localhost:3002 / 外部: ポート 8888 (HTTPS, Caddy経由)
 # or
 PORT=3003 node server.js     # 別ポート (SG範囲 3000-3003 内で選ぶ)
 ```

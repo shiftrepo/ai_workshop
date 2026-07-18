@@ -44,14 +44,12 @@ else
 ================================================================
   Excel は空の状態です。ブラウザからバグを発火させてください:
 
-  1) RoboMart:  https://hermes-dev.shift-ai-adoption.org:8888
-       (内部: http://localhost:3002)
+  1) RoboMart:  ポート 8888 (HTTPS)  /  内部 http://localhost:3002
      - "WalkyDog Mk2 (在庫切れ)" をクリック           → バグ1 発火
      - 在庫あり商品を "カートに入れる" → カートで
        決済方法「請求書払い」を選び注文確定           → バグ2 発火
 
-  2) Web UI:    https://hermes-dev.shift-ai-adoption.org:8081
-       (内部: http://localhost:4001)
+  2) Web UI:    ポート 8081 (HTTPS)  /  内部 http://localhost:4001
      - バグ発火後 数秒でインシデントが行として現れます
      - 行の [▶ 調査＆改修案] ボタンで 要承認 まで進む
 
