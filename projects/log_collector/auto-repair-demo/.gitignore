@@ -4,3 +4,7 @@ examples/incident_management.xlsx
 
 # 親 .gitignore の *.json 除外を打ち消し、orchestrator の package.json を追跡する
 !orchestrator/package.json
+
+# 親 .gitignore の lib/ (Python用) 除外を打ち消し、orchestrator/lib を追跡する
+!orchestrator/lib/
+!orchestrator/lib/**
