@@ -1,0 +1,11 @@
+node_modules/
+logs/
+package-lock.json
+
+# 親 .gitignore の *.json / data/ 除外を打ち消し、デモ必須ファイルを追跡する
+!package.json
+!data/
+!data/robots.json
+!bug-config.json
+!.demo-templates/
+!.demo-templates/bug-config.json

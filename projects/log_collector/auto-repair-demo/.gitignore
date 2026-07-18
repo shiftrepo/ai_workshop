@@ -1,0 +1,6 @@
+node_modules/
+output/
+examples/incident_management.xlsx
+
+# 親 .gitignore の *.json 除外を打ち消し、orchestrator の package.json を追跡する
+!orchestrator/package.json

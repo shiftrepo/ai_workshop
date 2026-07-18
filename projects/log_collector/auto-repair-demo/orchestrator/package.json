@@ -1,0 +1,14 @@
+{
+  "name": "auto-repair-orchestrator",
+  "version": "0.1.0",
+  "description": "Excel状態機械オーケストレータ — Issue #22 自動改修デモ",
+  "scripts": {
+    "start": "node excel-driver.js",
+    "web-ui": "node web-ui.js",
+    "gen-template": "node scripts/gen-template.js"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2"
+  }
+}
