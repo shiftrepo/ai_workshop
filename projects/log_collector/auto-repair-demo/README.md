@@ -35,13 +35,13 @@ auto-repair-demo/
 
 ## 公開URL
 
-| 用途 | 外部URL (HTTPS/Caddy経由) | ローカル代替 | 内部ポート |
-|------|--------------------------|-------------|:--:|
-| RoboMart Web アプリ | https://hermes-dev.shift-ai-adoption.org:8888 | `http://localhost:3002` | 3002 |
-| Incident Console (Excel Web UI) | https://hermes-dev.shift-ai-adoption.org:8081 | `http://localhost:4001` | 4001 |
+| 用途 | 外部ポート (HTTPS/Caddy経由) | ローカル代替 | 内部ポート |
+|------|:--:|-------------|:--:|
+| RoboMart Web アプリ | **8888** | `http://localhost:3002` | 3002 |
+| Incident Console (Excel Web UI) | **8081** | `http://localhost:4001` | 4001 |
 
 外部公開は Caddy (`/etc/caddy/Caddyfile`) がリバースプロキシ + TLS 終端。
-`:8888→localhost:3002`、`:8081→localhost:4001`。内部ポートは EC2 SG (`SG-SHIFT-hermes-dev`) の開放範囲から選択。
+`:8888→localhost:3002`、`:8081→localhost:4001`。内部ポートは EC2 セキュリティグループの開放範囲から選択。
 
 ## モデル/応答速度の設定 (demo-config.json)
 
@@ -78,7 +78,7 @@ cd projects/log_collector/auto-repair-demo/orchestrator
 # 1. RoboMart 起動 + バグ発火 + Web UI + 状態機械開始 (一発)
 ./run-demo.sh
 
-# 2. ブラウザで https://hermes-dev.shift-ai-adoption.org:8081 を開く
+# 2. ブラウザでポート 8081 (HTTPS) を開く
 #    (内部なら http://localhost:4001 でも同じ)
 #    → Excel の中身がテーブル表示され、3秒毎に自動更新される
 
@@ -133,8 +133,8 @@ cd projects/log_collector/auto-repair-demo/orchestrator
 ```bash
 cd projects/log_collector/auto-repair-demo/orchestrator
 node web-ui.js
-# 外部URL: https://hermes-dev.shift-ai-adoption.org:8081 (Caddy経由)
-# 内部URL: http://localhost:4001
+# 外部: ポート 8081 (HTTPS, Caddy経由)
+# 内部: http://localhost:4001
 # ポート変更: WEB_UI_PORT=4002 node web-ui.js
 ```
 
