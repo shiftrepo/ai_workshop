@@ -26,9 +26,11 @@ router.get('/:sku', (req, res, next) => {
 
     let relatedList;
     if (robot.stock === 0 && isEnabled('PRODUCT_STOCK_ZERO_NPE')) {
-      relatedList = robot.out_of_stock_alternatives;
+      relatedList = Array.isArray(robot.out_of_stock_alternatives)
+        ? robot.out_of_stock_alternatives
+        : [];
     } else {
-      relatedList = robot.related || [];
+      relatedList = Array.isArray(robot.related) ? robot.related : [];
     }
 
     const related = relatedList.map(sku => {
