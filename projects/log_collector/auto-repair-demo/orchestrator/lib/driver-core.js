@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const { readRows, updateRow } = require('./excel-io');
-const { invokeClaude, extractJson } = require('./subagent-invoker');
+const { invokeClaude, extractJson, loadConfig } = require('./subagent-invoker');
 
 const XLSX = process.env.INCIDENT_XLSX
   || path.join(__dirname, '..', '..', 'examples', 'incident_management.xlsx');
@@ -10,6 +10,20 @@ const DEMO_APP = path.join(__dirname, '..', '..', '..', 'demo-app');
 const REPO_ROOT = path.join(__dirname, '..', '..', '..', '..', '..');
 const OUTPUT_DIR = path.join(__dirname, '..', '..', 'output');
 const LOG_COLLECTOR = path.join(__dirname, '..', '..', '..', 'log-collector-skill', 'scripts', 'log-collection-skill.js');
+
+// demo-config.json の logCollector 設定から SSH 接続用の環境変数を組み立てる
+function logCollectorEnv() {
+  const cfg = loadConfig().logCollector;
+  if (!cfg) return {};
+  const env = {};
+  if (cfg.sshKeyPath) env.SSH_KEY_PATH = path.join(REPO_ROOT, cfg.sshKeyPath);
+  if (cfg.sshUser) env.SSH_USER = cfg.sshUser;
+  (cfg.servers || []).forEach((s, i) => {
+    env[`SSH_HOST_${i + 1}`] = s.host;
+    env[`SSH_PORT_${i + 1}`] = String(s.port);
+  });
+  return env;
+}
 
 const inFlight = new Set();
 let logSink = (msg) => console.log(`[driver ${new Date().toISOString()}] ${msg}`);
@@ -35,6 +49,7 @@ async function runLogCollector(row, opts = {}) {
         ...process.env,
         INPUT_FOLDER: path.dirname(XLSX),
         OUTPUT_FOLDER: OUTPUT_DIR,
+        ...logCollectorEnv(),   // demo-config.json の SSH 接続情報 (server1-3)
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });

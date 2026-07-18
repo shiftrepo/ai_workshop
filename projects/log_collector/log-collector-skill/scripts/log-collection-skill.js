@@ -25,7 +25,8 @@ class LogCollectionSkill {
             logPaths: [
                 '/var/log/application.log',
                 '/var/log/app/*.log',
-                '/tmp/logs/*.log'
+                '/tmp/logs/*.log',
+                '/tmp/logs/demo-app/*.log'   // Issue #22: RoboMart demo-app のログ (bind mount)
             ]
         };
         this.connections = new Map();

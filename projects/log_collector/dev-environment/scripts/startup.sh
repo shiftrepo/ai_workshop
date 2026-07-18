@@ -7,12 +7,12 @@ echo "🚀 Starting Issue #15 Log Collection Container..."
 
 # Generate initial diverse logs (as logcollector user)
 echo "📊 Generating diverse log data for server $(hostname)..."
-su logcollector -c "/app/client/generate-diverse-logs.sh"
+su logcollector -c "/app/dev-environment/scripts/generate-diverse-logs.sh"
 
 # Check if continuous log generation is requested
 if [ "$CONTINUOUS_LOGS" = "true" ]; then
     echo "🔄 Starting continuous diverse log generation..."
-    su logcollector -c "/app/client/generate-logs.sh continuous" &
+    su logcollector -c "/app/dev-environment/scripts/generate-logs.sh continuous" &
     CONTINUOUS_PID=$!
     echo "✅ Continuous log generation started (PID: $CONTINUOUS_PID)"
 fi
@@ -63,13 +63,18 @@ Subsystem sftp /usr/lib/openssh/sftp-server
 UsePAM no
 EOF
 
+# Unlock logcollector account (required for OpenSSH 9.9: locked account "!" rejects pubkey auth)
+echo "🔓 Unlocking logcollector account for pubkey auth..."
+passwd -u logcollector 2>/dev/null || usermod -p '*' logcollector 2>/dev/null || \
+  sed -i 's/^logcollector:!:/logcollector:*:/' /etc/shadow 2>/dev/null || true
+
 # Set up authorized_keys for logcollector user
 echo "🔑 Setting up SSH keys for logcollector user..."
 LOGCOLLECTOR_HOME=$(getent passwd logcollector | cut -d: -f6)
 mkdir -p "$LOGCOLLECTOR_HOME/.ssh"
 
-if [ -f "/app/client/examples/log_collector_key.pub" ]; then
-    cp /app/client/examples/log_collector_key.pub "$LOGCOLLECTOR_HOME/.ssh/authorized_keys"
+if [ -f "/app/dev-environment/sample-data/log_collector_key.pub" ]; then
+    cp /app/dev-environment/sample-data/log_collector_key.pub "$LOGCOLLECTOR_HOME/.ssh/authorized_keys"
     chmod 600 "$LOGCOLLECTOR_HOME/.ssh/authorized_keys"
     chmod 700 "$LOGCOLLECTOR_HOME/.ssh"
     chown -R logcollector:logcollector "$LOGCOLLECTOR_HOME/.ssh"

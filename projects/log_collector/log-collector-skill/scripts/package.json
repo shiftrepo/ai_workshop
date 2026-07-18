@@ -1,0 +1,11 @@
+{
+  "name": "log-collection-skill",
+  "version": "1.0.0",
+  "description": "Issue #15 log collector (SSH grep + Excel report)",
+  "private": true,
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "ssh2": "^1.15.0",
+    "chalk": "^4.1.2"
+  }
+}
