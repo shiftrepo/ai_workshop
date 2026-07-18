@@ -26,8 +26,8 @@
     th { background: var(--gray); position: sticky; top: 0; z-index: 5; user-select: none; position: relative; }
     th .resizer { position: absolute; right: -3px; top: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; z-index: 10; }
     th .resizer:hover, th .resizer.active { background: rgba(37, 99, 235, 0.4); }
-    tr.status-情報収集中       td.status-cell { background: #fef3c7; }
     tr.status-インシデント検出 td.status-cell { background: #fed7aa; font-weight: bold; }
+    tr.status-ログ収集済み     td.status-cell { background: #fef3c7; }
     tr.status-解析済み         td.status-cell { background: #ede9fe; }
     tr.status-要承認           td.status-cell { background: #fecaca; font-weight: bold; }
     tr.status-PR作成待ち       td.status-cell { background: #bbf7d0; }
@@ -96,17 +96,17 @@
       <span id="status"></span>
     </div>
     <div class="legend">
-      <span style="background:#fef3c7">情報収集中</span>
       <span style="background:#fed7aa">インシデント検出</span>
+      <span style="background:#fef3c7">ログ収集済み</span>
       <span style="background:#ede9fe">解析済み</span>
       <span style="background:#fecaca">要承認</span>
       <span style="background:#bbf7d0">PR作成待ち</span>
       <span style="background:#d1fae5">対応完了</span>
       <br>
-      <b>操作フロー</b> (各段は手動ゲート):
-      ①情報収集中 → <b>▶ ログ収集</b> で <span style="background:#fed7aa;padding:1px 4px;">インシデント検出</span> まで。
-      ②<b>▶ 調査＆改修案</b> で <span style="background:#fecaca;padding:1px 4px;">要承認</span> まで (数分)。
-      ③承認者を入力しステータスを <span style="background:#bbf7d0;padding:1px 4px;">PR作成待ち</span> にすると <b>自動で PR 発行</b>。
+      <b>操作フロー</b>:
+      バグ発火で <span style="background:#fed7aa;padding:1px 4px;">インシデント検出</span> として自動起票。
+      ①<b>▶ 調査＆改修案</b> で ログ収集→解析→改修案 を実行し <span style="background:#fecaca;padding:1px 4px;">要承認</span> まで (数分)。
+      ②承認者を入力しステータスを <span style="background:#bbf7d0;padding:1px 4px;">PR作成待ち</span> にすると <b>自動で PR 発行</b>。
       列幅はヘッダ右端をドラッグ / テーブルは横スクロール可。
     </div>
     <div class="table-wrap">
@@ -184,7 +184,7 @@
   </div>
 
   <script>
-    const STATUSES = ['情報収集中', 'インシデント検出', '解析済み', '要承認', 'PR作成待ち', '対応完了'];
+    const STATUSES = ['インシデント検出', 'ログ収集済み', '解析済み', '要承認', 'PR作成待ち', '対応完了'];
     let currentRows = [];
     let editingKey = null;
 
@@ -211,19 +211,14 @@
       return esc(s);
     }
     function actionsCell(row) {
-      if (row.status === '情報収集中') {
-        return `<div class="row-actions">
-          <button class="ok advance-btn" data-id="${esc(row.id)}" title="log_collector でログを収集し インシデント検出 まで進める">▶ ログ収集</button>
-        </div>`;
-      }
       if (row.status === 'インシデント検出') {
         return `<div class="row-actions">
-          <button class="ok advance-btn" data-id="${esc(row.id)}" title="一次解析 → 改修案作成 を実行し 要承認 まで進める (数分)">▶ 調査＆改修案</button>
+          <button class="ok advance-btn" data-id="${esc(row.id)}" title="ログ収集 → 一次解析 → 改修案作成 を実行し 要承認 まで進める (数分)">▶ 調査＆改修案</button>
         </div>`;
       }
-      if (row.status === '解析済み') {
+      if (row.status === 'ログ収集済み' || row.status === '解析済み') {
         return `<div class="row-actions">
-          <button class="ok advance-btn" data-id="${esc(row.id)}" title="改修案作成を実行し要承認まで進める">▶ 続きを実行</button>
+          <button class="ok advance-btn" data-id="${esc(row.id)}" title="要承認まで進める">▶ 続きを実行</button>
         </div>`;
       }
       if (row.status === '要承認') {

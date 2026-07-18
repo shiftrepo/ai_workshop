@@ -65,26 +65,27 @@ GET /api/notes/2
 ```
 | ID     | Time                | 概要                              | 担当 | ステータス | ... |
 |--------|---------------------|-----------------------------------|------|-----------|-----|
-| INC001 | 2026-07-17 13:00:00 | GET /api/notes/2 で 500 TrackID:NOTE00002 TypeError | AI  | 情報収集中 |     |
+| INC001 | 2026-07-17 13:00:00 | GET /api/notes/2 で 500 TrackID:NOTE00002 TypeError | AI  | インシデント検出 |     |
 ```
 
-**演者トーク**: 「監視ツールが自動でインシデント起票しました。ステータスは"情報収集中"です」
+**演者トーク**: 「監視ツールが自動でインシデント起票しました。ステータスは"インシデント検出"、確認待ちです」
 
 ---
 
-## 3. Step3: log_collector が該当ログを引く (1〜2分)
+## 3. Step3: 演者が「▶調査＆改修案」を押す → log_collector が該当ログを引く (1〜2分)
 
-**orchestrator/excel-driver.js** がポーリングで INC001 を発見。ステータス "情報収集中" → 既存 log_collector を起動。
+`インシデント検出` の行で演者が **▶ 調査＆改修案** ボタンを押す → 最初に既存 log_collector が起動。
 
 ```bash
 # excel-driver が実行するイメージ
-node client/log-collection-skill.js
+node log-collector-skill/scripts/log-collection-skill.js
   # INPUT_FOLDER=auto-repair-demo/examples
   # OUTPUT_FOLDER=auto-repair-demo/output
+  # FILTER_STATUS=インシデント検出
 ```
 
 log_collector が:
-- Excel の "情報収集中" 行を読む
+- Excel の "インシデント検出" 行を読む
 - インシデント概要から `TrackID:NOTE00002` を抽出
 - SSHで3サーバをgrep
 - 結果Excelを `output/log-collection-result_2026-07-17_13-01-30.xlsx` に出力
@@ -93,16 +94,16 @@ log_collector が:
 ```
 | ID     | ステータス | 調査状況              | 収集ログサマリ                            | 更新           |
 |--------|-----------|----------------------|-------------------------------------------|----------------|
-| INC001 | インシデント検出 | ログ12件収集   | log-collection-result_..._13-01-30.xlsx  | 2026-07-17 13:01:35 |
+| INC001 | ログ収集済み | ログ12件収集   | log-collection-result_..._13-01-30.xlsx  | 2026-07-17 13:01:35 |
 ```
 
-**演者トーク**: 「既存のlog_collectorスキルがログを引いてExcelに添付、ステータスを"インシデント検出"に進めました。ここで一旦停止します」
+**演者トーク**: 「既存のlog_collectorスキルがログを引いてExcelに添付、ステータスを"ログ収集済み"に進めました。続けて解析へ」
 
 ---
 
 ## 4. Step4-a: incident-analyzer が一次解析 (2〜3分)
 
-演者が "インシデント検出" 行の「▶ 調査＆改修案」ボタンを押す → Claude Code サブエージェント `incident-analyzer` を起動 (手動ゲート①)。
+log_collector 完了後、続けて Claude Code サブエージェント `incident-analyzer` が自動起動 (「▶調査＆改修案」ボタンの連続実行の一部)。
 
 **エージェントが受け取る入力** (row.json):
 ```json
@@ -255,11 +256,12 @@ Issue #22 デモにて `INC001` として起票された障害の改修。
 時刻     ステータス           トリガー             書き込む列
 ──────────────────────────────────────────────────────────────────
 13:00:00 (行が存在しない)     ―                    ―
-13:00:05 情報収集中           watchdog             A,B,C,D,E
-13:01:35 インシデント検出     log_collector        F,G,L  ★手動ゲート①
+13:00:05 インシデント検出     watchdog(起票)       A,B,C,D,E  ★手動ゲート①(確認待ち)
+─────  人が「▶調査＆改修案」ボタンを押す  ──────────────────────
+13:01:35 ログ収集済み         log_collector        F,G,L
 13:02:50 解析済み             incident-analyzer    H,E,L
-13:04:20 要承認               repair-planner       I,E,L
-─────  人手ゲート  ──────────────────────────────────────────
+13:04:20 要承認               repair-planner       I,E,L  ★手動ゲート②
+─────  人が承認者記入+PR作成待ちに編集  ──────────────────────
 13:06:00 PR作成待ち           人 (Excel編集)       J,E
 13:07:30 対応完了             pr-publisher         K,E,L
 ```

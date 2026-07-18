@@ -116,7 +116,7 @@ async function handleError(parsed) {
 
   ws.addRow([
     id, parsed.ts, summary, 'AI-Watchdog',
-    '情報収集中', '',
+    'インシデント検出', '',
     '', '', '', '', '', now,
   ]);
 

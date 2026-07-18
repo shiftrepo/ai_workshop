@@ -73,12 +73,13 @@ class LogCollectionSkill {
             console.log('\n📊 Step 1: Reading Excel task management files...');
             const tasks = await this.readTaskManagementFiles();
 
-            // Step 2: Extract tasks with "情報収集中" status
+            // Step 2: Extract tasks with target status (default 情報収集中, 上書きは FILTER_STATUS)
+            const filterStatus = process.env.FILTER_STATUS || '情報収集中';
             console.log('\n🔍 Step 2: Filtering tasks by status...');
-            const targetTasks = this.filterTasksByStatus(tasks, '情報収集中');
+            const targetTasks = this.filterTasksByStatus(tasks, filterStatus);
 
             if (targetTasks.length === 0) {
-                throw new Error('No tasks found with "情報収集中" status');
+                throw new Error(`No tasks found with "${filterStatus}" status`);
             }
 
             // Step 3: Extract TrackIDs and other identifiers
