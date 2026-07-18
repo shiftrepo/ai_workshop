@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { isEnabled } = require('../lib/bug-switch');
 const { carts } = require('./cart');
+const { logServiceCall, logServiceError } = require('../middleware/logger');
 
 const router = express.Router();
 
@@ -55,6 +56,7 @@ router.post('/', express.json(), (req, res, next) => {
     if (!shipping_address) return res.status(400).json({ error: 'shipping_address required' });
 
     const items = carts.get(sid);
+    logServiceCall(req, 'billing-service', { action: 'calc_total', payment_method });
     const totals = calcTotal(items, payment_method);
     carts.set(sid, []);
     res.status(201).json({
@@ -65,6 +67,7 @@ router.post('/', express.json(), (req, res, next) => {
       ...totals,
     });
   } catch (err) {
+    logServiceError(req, err, 'billing-service');
     next(err);
   }
 });
