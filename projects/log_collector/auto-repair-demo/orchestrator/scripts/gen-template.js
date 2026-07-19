@@ -10,7 +10,7 @@ const HEADERS = [
   { header: '担当者', width: 14 },
   { header: 'ステータス', width: 16 },
   { header: '調査状況', width: 40 },
-  { header: '収集ログサマリ', width: 40 },
+  { header: '収集ログ', width: 60 },
   { header: '一次解析結果', width: 60 },
   { header: '改修案', width: 60 },
   { header: '承認者', width: 14 },

@@ -69,7 +69,9 @@ function parseCsv(text) {
   return rows;
 }
 
-// log_collector が出力したCSVから、対象タスクの行を server×logPath(client/service) 別に抽出する
+// log_collector が出力したCSVから、対象タスクの行を server別に抽出する。
+// Content列は "logPath:実ログ行" 形式 (grep -r の出力そのまま) なので、
+// 先頭のファイルパスプレフィックスだけ取り除き、ログ本文はそのまま保持する。
 function extractCollectedEntries(csvPath, taskId) {
   const text = fs.readFileSync(csvPath, 'utf8');
   const rows = parseCsv(text);
@@ -86,32 +88,25 @@ function extractCollectedEntries(csvPath, taskId) {
     if (r[idx.taskId] !== taskId) continue;
     const server = r[idx.server] || '?';
     const logPath = r[idx.logPath] || '';
-    const kind = /service\.log/.test(logPath) ? 'service' : /app\.log/.test(logPath) ? 'client' : 'other';
-    entries.push({ server, kind, content: r[idx.content] || '' });
+    const rawContent = r[idx.content] || '';
+    const line = rawContent.startsWith(`${logPath}:`) ? rawContent.slice(logPath.length + 1) : rawContent;
+    entries.push({ server, logPath, line });
   }
   return entries;
 }
 
-// 収集エントリを "[server1/client] <生ログ本文>" 形式で連結する (H列・LLM入力の両方で使う)
+// 収集エントリを "[サーバ名 ログパス] <ログ本文そのまま>" 形式で連結する (H列・LLM入力の両方で使う)。
+// サーバ/取得元ファイル以外の加工 (件数集計・分類ラベル付け) はしない。
 function formatRawLogLines(entries) {
-  return entries.map(e => `[${e.server}/${e.kind}] ${e.content}`).join('\n');
-}
-
-// サーバ×ログ種別ごとの件数サマリ ("server1/client=3, server1/service=2")
-function summarizeCounts(entries) {
-  const counts = new Map();
-  for (const e of entries) {
-    const key = `${e.server}:${e.kind}`;
-    counts.set(key, (counts.get(key) || 0) + 1);
-  }
-  return [...counts.entries()]
-    .sort()
-    .map(([key, n]) => { const [server, kind] = key.split(':'); return `${server}/${kind}=${n}`; })
-    .join(', ');
+  return entries.map(e => `[${e.server} ${e.logPath}] ${e.line}`).join('\n');
 }
 
 // log-collection-skill.js を子プロセスで実行し、終了コードを待つだけの薄いラッパー
 function spawnLogCollector() {
+  // log-collection-skill.js は OUTPUT_FOLDER を自動作成しない (ENOENT でExcel/CSV書き込みに
+  // 失敗し exit 1 で終わる)。デモリセット等でこのディレクトリ自体が消えることがあるため、
+  // 実行前に必ず存在を保証する。
+  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   return new Promise((resolve, reject) => {
     const child = spawn('node', [LOG_COLLECTOR], {
       env: {
