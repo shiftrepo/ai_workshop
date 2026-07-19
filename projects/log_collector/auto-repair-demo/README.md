@@ -116,7 +116,7 @@ cd projects/log_collector/auto-repair-demo/orchestrator
 2. **ステータス** カラム (F列) のドロップダウンで **`PR作成待ち`** を選ぶ (即保存)
 
 ステータス変更を検知して `pr-publisher` が自動起動:
-- `fix/inc<番号>-<TrackID>` ブランチを切る (`origin/logcollecter-ai` から)
+- `fix/inc<番号>-<TrackID>` ブランチを切る (`origin/main` から)
 - 改修案の diff を実コードに適用 → コミット → push → `gh pr create`
 - L 列に PR URL を書き戻し → F 列を `対応完了` に更新
 
