@@ -123,25 +123,27 @@ async function handleError(parsed) {
   wlog(`appended ${id} to Excel (row ${ws.rowCount})`, parsed.trackId);
 }
 
+// バイト位置(position)だけで差分判定する方式は、リセット(truncate)直後に
+// 同一バイト数のログが再書き込みされるケース (このデモのバグは常に固定長TrackID+
+// 固定フォーマットのため高確率で発生する) で "サイズ不変=変更なし" と誤判定し、
+// 検知が止まる欠陥があった。前回読み取った全文(lastContent)と比較し、
+// 新しい内容が末尾に追記されただけなら差分だけ、そうでない(truncateされた)場合は
+// 全文を再処理する。再処理対象になった既処理行は handleError() 側の
+// TrackID単位の冪等性 (findRowByTrackId) により安全に無視されるため実害はない。
 function tailFile(filePath, onLine) {
-  let position = 0;
+  let lastContent = '';
   const check = () => {
     if (!fs.existsSync(filePath)) return;
-    const stat = fs.statSync(filePath);
-    if (stat.size < position) position = 0;
-    if (stat.size === position) return;
-    const stream = fs.createReadStream(filePath, { start: position, end: stat.size });
-    let buf = '';
-    stream.on('data', chunk => {
-      buf += chunk.toString('utf8');
-      const lines = buf.split('\n');
-      buf = lines.pop();
-      lines.forEach(onLine);
-    });
-    stream.on('end', () => {
-      if (buf) onLine(buf);
-      position = stat.size;
-    });
+    let content;
+    try {
+      content = fs.readFileSync(filePath, 'utf8');
+    } catch {
+      return;
+    }
+    if (content === lastContent) return;
+    const delta = content.startsWith(lastContent) ? content.slice(lastContent.length) : content;
+    lastContent = content;
+    delta.split('\n').filter(Boolean).forEach(onLine);
   };
   setInterval(check, 500);
   check();
