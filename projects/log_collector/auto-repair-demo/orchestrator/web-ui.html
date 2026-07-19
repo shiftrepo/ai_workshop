@@ -113,6 +113,7 @@
       <table id="grid">
         <colgroup>
           <col style="width:70px" />
+          <col style="width:90px" />
           <col style="width:170px" />
           <col style="width:280px" />
           <col style="width:110px" />
@@ -129,18 +130,19 @@
         <thead>
           <tr>
             <th data-col="0">ID</th>
-            <th data-col="1">時刻</th>
-            <th data-col="2">概要</th>
-            <th data-col="3">担当者</th>
-            <th data-col="4">ステータス</th>
-            <th data-col="5">調査状況</th>
-            <th data-col="6">収集ログ</th>
-            <th data-col="7">一次解析</th>
-            <th data-col="8">改修案</th>
-            <th data-col="9">承認者</th>
-            <th data-col="10">PR URL</th>
-            <th data-col="11">最終更新</th>
-            <th data-col="12">操作</th>
+            <th data-col="1">TrackID</th>
+            <th data-col="2">時刻</th>
+            <th data-col="3">概要</th>
+            <th data-col="4">担当者</th>
+            <th data-col="5">ステータス</th>
+            <th data-col="6">調査状況</th>
+            <th data-col="7">収集ログ</th>
+            <th data-col="8">一次解析</th>
+            <th data-col="9">改修案</th>
+            <th data-col="10">承認者</th>
+            <th data-col="11">PR URL</th>
+            <th data-col="12">最終更新</th>
+            <th data-col="13">操作</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -243,7 +245,7 @@
       const j = await r.json();
       document.getElementById('xlsx-path').textContent = j.xlsx || '';
       if (j.missing) {
-        document.getElementById('tbody').innerHTML = `<tr><td colspan="13" class="empty">${esc(j.xlsx)} が存在しません。run-demo.sh を実行してください。</td></tr>`;
+        document.getElementById('tbody').innerHTML = `<tr><td colspan="14" class="empty">${esc(j.xlsx)} が存在しません。run-demo.sh を実行してください。</td></tr>`;
         return;
       }
       currentRows = j.rows;
@@ -254,12 +256,13 @@
     function render() {
       const tbody = document.getElementById('tbody');
       if (currentRows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="13" class="empty">インシデントはまだありません。RoboMart でバグを発火させてください。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="14" class="empty">インシデントはまだありません。RoboMart でバグを発火させてください。</td></tr>`;
         return;
       }
       tbody.innerHTML = currentRows.map(r => `
         <tr class="status-${esc(r.status || '')}" data-row="${r.rowNum}">
           <td class="id-cell">${esc(r.id)}</td>
+          <td class="id-cell">${esc(r.trackId)}</td>
           <td>${esc(r.ts)}</td>
           <td class="long">${esc(r.summary)}</td>
           <td>${textInput(r, 'assignee')}</td>

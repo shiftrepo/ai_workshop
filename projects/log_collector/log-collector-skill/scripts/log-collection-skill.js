@@ -168,11 +168,12 @@ class LogCollectionSkill {
             const task = {
                 rowNumber,
                 incidentId: this.getCellValue(row, 'A'),      // インシデントID
-                timestamp: this.getCellValue(row, 'B'),       // タイムスタンプ
-                description: this.getCellValue(row, 'C'),     // インシデント概要
-                assignee: this.getCellValue(row, 'D'),        // 担当者
-                status: this.getCellValue(row, 'E'),          // ステータス
-                investigation: this.getCellValue(row, 'F'),   // 調査状況
+                trackId: this.getCellValue(row, 'B'),         // TrackID
+                timestamp: this.getCellValue(row, 'C'),       // タイムスタンプ
+                description: this.getCellValue(row, 'D'),     // インシデント概要
+                assignee: this.getCellValue(row, 'E'),        // 担当者
+                status: this.getCellValue(row, 'F'),          // ステータス
+                investigation: this.getCellValue(row, 'G'),   // 調査状況
                 sourceFile: path.basename(filePath)
             };
 
@@ -230,6 +231,11 @@ class LogCollectionSkill {
 
             // Extract TrackIDs using multiple patterns
             enriched.trackIds = [];
+
+            // 専用列(B列)にTrackIDが記入されていれば最優先で追加
+            if (task.trackId) {
+                enriched.trackIds.push(task.trackId);
+            }
 
             // 複数のTrackIDパターンを定義
             const multipleTrackIdPatterns = [

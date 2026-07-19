@@ -185,9 +185,10 @@ const timeRange = {
 
 **Required Column Structure**:
 - Column A: Incident ID (Task identifier)
-- Column B: Timestamp (Date/time information)
-- Column C: Incident Description (Contains TrackIDs)
-- Column E: Status ("情報収集中" for filtering)
+- Column B: TrackID (Unique ID linking app/service logs for the same transaction)
+- Column C: Timestamp (Date/time information)
+- Column D: Incident Description (Contains TrackIDs)
+- Column F: Status ("情報収集中" for filtering)
 
 ### 2. Pattern Extraction Phase
 ```

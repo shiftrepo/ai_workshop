@@ -79,7 +79,7 @@ env SSH_KEY_PATH=../dev-environment/sample-data/log_collector_key \
 ## Core Workflow
 
 1. **Excel Input**: Read task management files from INPUT_FOLDER
-   - Expected columns (Japanese): インシデントID, タイムスタンプ, インシデント概要, 担当者, ステータス, 調査状況
+   - Expected columns (Japanese): インシデントID, TrackID, タイムスタンプ, インシデント概要, 担当者, ステータス, 調査状況
    - Filter tasks by status: "情報収集中" (Information Collecting)
 
 2. **Pattern Extraction**: Use configurable regex from `log-patterns.json`
@@ -209,11 +209,12 @@ Expected Excel structure (Japanese headers):
 | Column | Japanese | Purpose |
 |--------|----------|---------|
 | A | インシデントID | Task identifier (e.g., INC001) |
-| B | タイムスタンプ | Incident timestamp |
-| C | インシデント概要 | Description containing TrackIDs |
-| D | 担当者 | Assignee |
-| E | ステータス | Status (must be "情報収集中" for collection) |
-| F | 調査状況 | Investigation notes |
+| B | TrackID | Unique ID linking app/service logs for the same transaction |
+| C | タイムスタンプ | Incident timestamp |
+| D | インシデント概要 | Description containing TrackIDs |
+| E | 担当者 | Assignee |
+| F | ステータス | Status (must be "情報収集中" for collection) |
+| G | 調査状況 | Investigation notes |
 
 **Sample Description with TrackIDs**:
 ```

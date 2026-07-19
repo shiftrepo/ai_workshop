@@ -9,7 +9,7 @@ const EXCEL_PATH = process.env.INCIDENT_XLSX
 const TEMPLATE_PATH = path.join(__dirname, '..', 'auto-repair-demo', 'examples', 'incident_management_template.xlsx');
 
 const HEADERS = [
-  'インシデントID', 'タイムスタンプ', 'インシデント概要', '担当者',
+  'インシデントID', 'TrackID', 'タイムスタンプ', 'インシデント概要', '担当者',
   'ステータス', '調査状況',
   '収集ログサマリ', '一次解析結果', '改修案', '承認者', 'PR URL', '最終更新',
 ];
@@ -88,8 +88,7 @@ function findRowByTrackId(ws, trackId) {
   let hit = null;
   ws.eachRow((row, rowNum) => {
     if (rowNum === 1 || hit) return;
-    const summary = row.getCell(3).value;
-    if (typeof summary === 'string' && summary.includes(`TrackID:${trackId}`)) {
+    if (row.getCell(2).value === trackId) {
       hit = { row, rowNum };
     }
   });
@@ -115,7 +114,7 @@ async function handleError(parsed) {
   const now = new Date().toISOString();
 
   ws.addRow([
-    id, parsed.ts, summary, 'AI-Watchdog',
+    id, parsed.trackId, parsed.ts, summary, 'AI-Watchdog',
     'インシデント検出', '',
     '', '', '', '', '', now,
   ]);

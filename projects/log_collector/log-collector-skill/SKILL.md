@@ -88,9 +88,10 @@ Place Excel files in `scripts/examples/`. Required columns:
 | Column | Header (Japanese) | Content |
 |--------|-------------------|---------|
 | A | インシデントID | Task identifier |
-| B | タイムスタンプ | Incident timestamp |
-| C | インシデント概要 | Description containing TrackIDs |
-| E | ステータス | "情報収集中" for search targets |
+| B | TrackID | Unique ID linking app/service logs for the same transaction |
+| C | タイムスタンプ | Incident timestamp |
+| D | インシデント概要 | Description containing TrackIDs |
+| F | ステータス | "情報収集中" for search targets |
 
 ### 3. Execution
 

@@ -18,9 +18,9 @@ set SSH_USER=logops
 #### Step 2: Task File Preparation
 Create Excel file `incident_20241125.xlsx`:
 
-| A (インシデントID) | B (タイムスタンプ) | C (インシデント概要) | D (担当者) | E (ステータス) |
-|---|---|---|---|---|
-| INC-2024-001 | 2024-11-25 14:30:00 | Authentication error occurred TrackID: AUTH001 | Tanaka | 情報収集中 |
+| A (インシデントID) | B (TrackID) | C (タイムスタンプ) | D (インシデント概要) | E (担当者) | F (ステータス) |
+|---|---|---|---|---|---|
+| INC-2024-001 | AUTH001 | 2024-11-25 14:30:00 | Authentication error occurred TrackID: AUTH001 | Tanaka | 情報収集中 |
 
 #### Step 3: Execution
 ```cmd
@@ -67,12 +67,12 @@ set SSH_PORT_3=22
 #### Step 2: Complex Task File
 Excel file `major_incident_20241125.xlsx`:
 
-| A | B | C | D | E |
-|---|---|---|---|---|
-| INC-2024-050 | 2024-11-25 09:15:00 | System failure TrackID: SYS001, AUTH002 | System Team | 情報収集中 |
-| INC-2024-051 | 2024-11-25 09:20:00 | DB connection error trackId=DB503 | DB Team | 情報収集中 |
-| INC-2024-052 | 2024-11-25 09:25:00 | API response delay [ID: API101] | API Team | 情報収集中 |
-| INC-2024-053 | 2024-11-25 09:30:00 | Login failure #LOGIN007 | Auth Team | 解決済み |
+| A | B (TrackID) | C | D | E | F |
+|---|---|---|---|---|---|
+| INC-2024-050 | SYS001 | 2024-11-25 09:15:00 | System failure TrackID: SYS001, AUTH002 | System Team | 情報収集中 |
+| INC-2024-051 | DB503 | 2024-11-25 09:20:00 | DB connection error trackId=DB503 | DB Team | 情報収集中 |
+| INC-2024-052 | API101 | 2024-11-25 09:25:00 | API response delay [ID: API101] | API Team | 情報収集中 |
+| INC-2024-053 | LOGIN007 | 2024-11-25 09:30:00 | Login failure #LOGIN007 | Auth Team | 解決済み |
 
 #### Step 3: Execution
 ```cmd
@@ -265,9 +265,10 @@ Wrong: 情報收集中  (variant characters)
 ```
 Required columns:
 Column A: Incident ID
-Column B: Timestamp
-Column C: Incident Description (contains TrackID)
-Column E: Status
+Column B: TrackID
+Column C: Timestamp
+Column D: Incident Description (contains TrackID)
+Column F: Status
 ```
 
 3. **Character Encoding Verification**

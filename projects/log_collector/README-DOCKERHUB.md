@@ -117,7 +117,7 @@ docker run -v /host/ssh/key:/app/.ssh/production_key \
 ## 📊 Log Collection Workflow
 
 1. **Excel Input**: Japanese task management files
-   - Column headers: インシデントID, タイムスタンプ, インシデント概要, etc.
+   - Column headers: インシデントID, TrackID, タイムスタンプ, インシデント概要, etc.
    - Status filter: "情報収集中" (Information Collecting)
 
 2. **Pattern Extraction**: Multiple TrackID patterns supported

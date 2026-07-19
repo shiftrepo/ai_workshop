@@ -46,7 +46,7 @@ Issue #22 自動改修デモの一次解析担当。
 
 ## 出力 (stdout, JSON を含む)
 
-**最終行までに、以下の形式で JSON を1つ含めること**。excel-driver は正規表現で JSON ブロックを拾い、`analysis` フィールドをそのまま Excel の H 列に書き込む。
+**最終行までに、以下の形式で JSON を1つ含めること**。excel-driver は正規表現で JSON ブロックを拾い、`analysis` フィールドをそのまま Excel の I 列に書き込む。
 
 ````
 ```json
