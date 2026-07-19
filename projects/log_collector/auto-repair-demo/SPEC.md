@@ -58,33 +58,38 @@
 
 ### データフロー (Excel駆動パイプライン)
 
+**watchdogは起票前にログ収集・概要生成まで完了させる**。「Excelに空のインシデント検出行が現れ、ボタンを押すとログが集まる」のではなく、起票された瞬間に既に収集ログ・概要が揃っている。
+
 ```
    ┌──────────────┐   人がバグ発火    ┌──────────────────┐
    │  demo-app    │──────────────────>│ demo-app/logs/*  │
    │  (Express)   │   TrackID付き      └──────────────────┘
    └──────────────┘                              │
-                                                 │ SSH grep
+                                                 │ tail検知
                                                  v
                                         ┌──────────────────┐
-                                        │ log_collector    │
-                                        │ (既存Skill)      │
+                                        │ watchdog.js      │
+                                        │ ①SSH grepで収集  │
+                                        │ (log-collector-  │
+                                        │  skillをspawn)    │
+                                        │ ②log-summarizer  │
+                                        │  でLLM概要生成    │
                                         └──────────────────┘
                                                  │
                                                  v
    ┌──────────────────────────────────────────────────────────────┐
    │  incident_management.xlsx                                    │
-   │  ┌────┬─────────┬─────────┬─────┬──────────────┬──────────┐│
-   │  │ID  │Time     │概要     │担当 │ステータス      │調査状況  ││
-   │  │INC1│...      │Track:A  │AI   │インシデント検出 │          ││ ←起点(起票時)
-   │  └────┴─────────┴─────────┴─────┴──────────────┴──────────┘│
+   │  ┌────┬──────┬─────────┬─────────┬─────┬──────────────┬──────┐│
+   │  │ID  │Track │Time     │概要(LLM)│担当 │ステータス      │調査 ││
+   │  │INC1│A     │...      │要約済み  │AI   │ログ収集済み    │     ││ ←起点(起票時、H列にも生ログ格納済み)
+   │  └────┴──────┴─────────┴─────────┴─────┴──────────────┴──────┘│
    └──────────────────────────────────────────────────────────────┘
-                     │ 人が「▶調査＆改修案」ボタンを押す
+                     │ 人が収集ログ・概要を見て「▶調査＆改修案」ボタンを押す
                      v
      ┌──────────────────┬──────────────────┬──────────────────┐
-     │ ステータス       │ 起動エージェント │ 書き戻し先        │
+     │ ステータス       │ 次に進む際のエージェント │ 書き戻し先  │
      ├──────────────────┼──────────────────┼──────────────────┤
-     │ インシデント検出 │ log_collector    │ 調査状況(ログ添付)│ ★起票=手動ゲート
-     │ ログ収集済み     │ incident-analyzer│ 一次解析結果      │
+     │ ログ収集済み     │ incident-analyzer│ 一次解析結果      │ ★起票=手動ゲート① (収集ログ・概要を見て続行判断)
      │ 解析済み         │ repair-planner   │ 改修案+テスト計画 │
      │ 要承認           │ (手動ゲート②)    │ ―                 │
      │ PR作成待ち       │ pr-publisher     │ PR URL            │
@@ -101,100 +106,107 @@
 
 ## 3. Excel状態遷移仕様
 
-### 3.1 既存列（変更なし）
+### 3.1 既存列
 
 | 列 | ヘッダー | 内容 |
 |----|----------|------|
 | A | インシデントID | INC001 など |
-| B | タイムスタンプ | インシデント発生時刻 |
-| C | インシデント概要 | TrackID等を含む説明文 |
-| D | 担当者 | 担当者名 |
-| E | ステータス | **状態機械の遷移トリガー** |
-| F | 調査状況 | 調査メモ (log_collectorが追記) |
+| B | TrackID | app.log/service.logを串刺しで結ぶ一意ID (watchdogがログから抽出して記入) |
+| C | タイムスタンプ | インシデント発生時刻 |
+| D | インシデント概要 | watchdog起票時はapp.logの1行から機械的に生成。ログ収集完了時にlog-summarizer(LLM)が収集した生ログから事象概要を再生成し上書き |
+| E | 担当者 | 担当者名 |
+| F | ステータス | **状態機械の遷移トリガー** |
+| G | 調査状況 | 調査メモ (log_collectorが追記) |
 
 ### 3.2 新規追加列
 
 | 列 | ヘッダー | 記入者 | 内容 |
 |----|----------|--------|------|
-| G | 収集ログサマリ | log_collector | 収集件数 + 出力Excelファイル名 |
-| H | 一次解析結果 | incident-analyzer | 症状/原因/影響範囲/再現手順 (JSON+人可読) |
-| I | 改修案 | repair-planner | 対象ファイル/変更方針/テスト計画 |
-| J | 承認者 | 人 | 改修案を承認した担当者名 |
-| K | PR URL | pr-publisher | 発行されたPRのURL |
-| L | 最終更新 | 各エージェント | ISO 8601タイムスタンプ |
+| H | 収集ログ | log_collector | 各サーバから取得したTrackID一致ログ行をそのまま結合して格納 (`[ログファイル名 (サーバ)] ログ本文` 形式、加工・集計はしない) |
+| I | 一次解析結果 | incident-analyzer | 症状/原因/影響範囲/再現手順 (JSON+人可読) |
+| J | 改修案 | repair-planner | 対象ファイル/変更方針/テスト計画 |
+| K | 承認者 | 人 | 改修案を承認した担当者名 |
+| L | PR URL | pr-publisher | 発行されたPRのURL |
+| M | 最終更新 | 各エージェント | ISO 8601タイムスタンプ |
 
-### 3.3 ステータス列(E)の状態機械
+### 3.3 ステータス列(F)の状態機械
 
 ```
     [新規]                       ← 監視ツール(watchdog)がバグ発火を検知
       │
-      v ステータス="インシデント検出"  ★手動ゲート① — 起票時点で確認待ち
+      v (起票前に実行、まだExcelに行はない)
+    [log_collector]              ← 既存Skill が SSH で該当ログ(TrackID一致)を引く (H列に格納する内容)
+    [log-summarizer]             ← 収集した生ログから概要を生成 (D列に格納する内容、LLM)
+      │
+      v ステータス="ログ収集済み"  ★手動ゲート① — 起票時点で既に収集ログ・概要が揃っている。確認待ち
       │
       │ (人が「▶ 調査＆改修案」ボタンを押す)
       v
-    [log_collector]              ← 既存Skill が SSH で該当ログ(TrackID一致)を引く
-      │
-      v ステータス="ログ収集済み"  ← 自動で次へ
-    [incident-analyzer]          ← 一次解析エージェント (New)
+    [incident-analyzer]          ← 一次解析エージェント
       │
       v ステータス="解析済み"      ← 自動で次へ
-    [repair-planner]             ← 改修案エージェント (New)
+    [repair-planner]             ← 改修案エージェント
       │
       v ステータス="要承認"        ★手動ゲート② — 人が確認するために停止
       │
       │ (人が承認者を記入し ステータス="PR作成待ち" に編集)
       v
-    [pr-publisher]               ← PR発行エージェント (New)
+    [pr-publisher]               ← PR発行エージェント
       │
       v ステータス="対応完了"      ★終端
 ```
 
 **設計原則**:
 1. **一方向遷移** — 逆戻りは人手のみ。エージェントは前進のみ。
-2. **起票=確認待ち** — watchdog はバグ発火を検知した時点で `インシデント検出` として起票する。
-   これ自体が手動ゲート① を兼ねる (「情報収集中」ステータスは廃止)。
+2. **起票=確認待ち、かつ既に調査材料が揃っている** — watchdog はバグ発火を検知すると、まず自身でSSHログ収集(log_collector)とLLM概要生成(log-summarizer)を行い、その結果を持った状態で初めて `ログ収集済み` として起票する。空のインシデント検出行がまず現れてボタンを押すとログが集まる、という順序ではない。
 3. **手動ゲートは2つ** —
-   - `インシデント検出` (ゲート①): 起票直後。人が「▶調査＆改修案」を押すまで重い処理 (ログ収集/解析/改修) は走らない。
-     同一事象が TrackID 単位で複数起票されるため、人が取捨選択してから進める。
+   - `ログ収集済み` (ゲート①): 起票時点。収集ログ(H列)の生本文と、そこからLLMが生成した概要(D列)を見て、一次解析・改修案作成に進めるかを人が判断する。同一事象が TrackID 単位で複数起票されるため、人が取捨選択してから進める。
    - `要承認` (ゲート②): 改修案の確認後にのみ PR を発行 (Issue #22 の「改修案の確認後改修して、PRを発行する」に対応)。
-3. **エージェントは冪等** — 同じ行が2回流れても L列(最終更新)で重複判定。
-4. **`▶ 調査＆改修案` ボタン** は「インシデント検出 → 解析済み → 要承認」を一気に実行し、次の手動ゲート `要承認` で停止する (analyzer と planner の間には手動ゲートを置かない)。
+4. **エージェントは冪等** — 同じ行が2回流れても M列(最終更新)で重複判定。
+5. **`▶ 調査＆改修案` ボタン** は `ログ収集済み` の行に対して「一次解析→改修案作成」を実行し、次の手動ゲート `要承認` で停止する。ログ収集自体はボタン操作の対象ではなく、起票前にwatchdogが済ませている。
 
 ---
 
 ## 4. サブエージェント階層
 
-### 4.1 3本のClaude Codeサブエージェント (すべて `agent-registration/` と同形式で登録)
+### 4.1 4本のClaude Codeサブエージェント (すべて `.claude/agents/` に同形式で登録)
+
+#### 0. `log-summarizer` — 起票前のログ収集ステップに組み込まれた概要生成エージェント
+- **発火**: `watchdog.js` が ERROR を検知し、`log-collection-skill.js` をSSH収集のためspawnした直後。**Excelへの起票より前**に呼ばれる (独立したステータスは持たない)
+- **入力**: 収集した生ログ (H列に格納する内容と同じ、`raw_logs`として渡す)
+- **やること**: 発生した事象の概要を2〜3文で要約する。client/serviceの両方にログが見られる場合はその旨とTrackIDでの紐付きに触れる
+- **出力**: watchdogが機械的に組み立てたフォールバック概要文を上書きし、その値でExcel D列 (インシデント概要) に初めて書き込まれる (=起票時点で既にLLM概要になっている)
+- **注意**: 原因分析・改修案・再現手順は書かない (incident-analyzer/repair-plannerの担当)
 
 #### A. `incident-analyzer` — 一次解析エージェント
-- **発火**: `インシデント検出` 行で人が「▶ 調査＆改修案」ボタンを押したとき (手動ゲート①)
-- **入力**: Excel の "インシデント検出" 行 + G列の収集ログサマリで示された生ログ.xlsx
+- **発火**: `ログ収集済み` 行で人が「▶ 調査＆改修案」ボタンを押したとき (手動ゲート①)。収集ログ・概要を確認した上での判断
+- **入力**: Excel の "ログ収集済み" 行 + H列の収集ログ (各サーバから収集した生ログ本文)
 - **やること**:
   1. ログを読み、症状 (Symptom) と最も可能性の高い原因 (RootCauseHypothesis) を1〜3件挙げる
   2. 影響範囲 (どのエンドポイント/機能が壊れているか) を特定
   3. 再現手順 (curl等) を書き出す
-- **出力**: Excel H列 に構造化テキスト + ステータスを "解析済み" に更新
+- **出力**: Excel I列 に構造化テキスト + ステータスを "解析済み" に更新
 - **モデル/effort**: `demo-config.json` で設定 (既定 Sonnet 5 / effort=low)
 
 #### B. `repair-planner` — 改修案提示エージェント
-- **入力**: Excel の "解析済み" 行 + H列の解析結果 + 対象コード (demo-app/)
+- **入力**: Excel の "解析済み" 行 + I列の解析結果 + 対象コード (demo-app/)
 - **やること**:
   1. 修正すべきファイル/行を特定
   2. 変更方針を diff もどきで提示 (`--- a/... +++ b/...`)
   3. 追加すべきテスト (unit / e2e) を列挙
   4. ロールバック手順
-- **出力**: Excel I列 + ステータスを "要承認" に更新
+- **出力**: Excel J列 + ステータスを "要承認" に更新
 - **注意**: **この段階ではコードを書き換えない**。あくまで案。
 
 #### C. `pr-publisher` — PR発行エージェント
 - **発火条件**: 人がステータス列を **"PR作成待ち"** に手動で変更した行
 - **やること**:
   1. `fix/inc-<ID>` ブランチを切る
-  2. I列の改修案に従ってコードを実際に編集
+  2. J列の改修案に従ってコードを実際に編集
   3. テスト実行 (`npm test` があれば)
   4. コミット + push + `gh pr create`
-  5. PR本文に H列(解析), I列(改修案), J列(承認者) を貼る
-- **出力**: Excel K列にPR URL + ステータスを "対応完了" に更新
+  5. PR本文に I列(解析), J列(改修案), K列(承認者) を貼る
+- **出力**: Excel L列にPR URL + ステータスを "対応完了" に更新
 - **安全策**:
   - 必ず `main` からブランチ切り
   - `--no-verify` は使わない
@@ -206,8 +218,9 @@
 
 ```javascript
 // 実装: orchestrator/lib/driver-core.js
+// ログ収集(log_collector)+概要生成(log-summarizer)はExcel起票前にdemo-app/watchdog.js側で
+// 実行されるため、driver-core.jsのHANDLERSは「ログ収集済み」から始まる。
 const HANDLERS = {
-  'インシデント検出': { fn: runLogCollector,     next: 'ログ収集済み' },
   'ログ収集済み':     { fn: runIncidentAnalyzer, next: '解析済み' },
   '解析済み':         { fn: runRepairPlanner,    next: '要承認' },
   'PR作成待ち':       { fn: runPrPublisher,      next: '対応完了' },
@@ -220,7 +233,7 @@ while (true) {
   for (const row of rows) {
     const handler = STATE_HANDLERS[row.status];
     if (!handler) continue;                // 対象外ステータス
-    if (recentlyProcessed(row)) continue;  // L列で冪等性担保
+    if (recentlyProcessed(row)) continue;  // M列で冪等性担保
     invokeSubagent(handler.agent, row);    // Claude Code サブエージェント呼出
     writeStatus(row.id, handler.nextStatus);
   }
@@ -307,18 +320,23 @@ while (true) {
 - **bug-config.json はコード常駐** — AIエージェントは config を読むのではなく、あくまでログとソースを追って原因特定する (デモの誠実さ)
 - **バグ内容はメタで持つ** — 運営側がどちらのバグを仕込んだか README で把握
 
-### 5.3 障害検知 → Excel起票 (Step3の前段)
+### 5.3 障害検知 → ログ収集 → 概要生成 → Excel起票 (Step3の前段)
 
 最小構成として `demo-app/watchdog.js` を用意:
 - `logs/app.log` を tail
-- `ERROR` 行を検知したら `incident_management.xlsx` に新規行を追加
-  - インシデントID: 自動採番 (INC001, INC002 …)
-  - タイムスタンプ: ログ行のTS
-  - インシデント概要: ログ行そのまま
-  - ステータス: `インシデント検出` (起票=確認待ち。人が「▶調査＆改修案」を押すまで停止)
-- 同一TrackIDの2件目以降は既存行にマージ (件数++)
+- `ERROR` 行を検知したら、**Excelに書き込む前に**以下を実行する:
+  1. インシデントID (INC001, INC002 …) を自動採番し、そのTrackIDだけを含む一時Excel (staging) を作成
+  2. `log-collection-skill.js` をSSH収集のためspawnし、TrackID一致ログをclient/service両方から取得
+  3. 取得できた場合は `log-summarizer` (LLM) を呼び、生ログから事象概要を生成
+  4. 一時Excelは使用後に削除
+- 上記が完了した内容を持つ行を `incident_management.xlsx` に新規追加:
+  - インシデントID / タイムスタンプ / TrackID
+  - インシデント概要: LLMが生成した概要 (収集失敗時はログ行から機械的に組み立てたフォールバック文)
+  - 収集ログ (H列): client/service両方の生ログ本文 (収集失敗時はエラー内容)
+  - ステータス: `ログ収集済み` (起票=確認待ち。人が「▶調査＆改修案」を押すまで次の解析は走らない)
+- 同一TrackIDの2件目以降は起票せず無視 (ログ収集は行わず即座にスキップ)
 
-これで「バグ発火 → 自動起票」まで無人化される。
+これで「バグ発火 → ログ収集 → 概要生成 → 自動起票」まで無人化される。
 
 ---
 
@@ -335,11 +353,14 @@ while (true) {
 (cd ../../demo-app && node server.js &)
 
 # 3. watchdog を起動 (background)
+#    ERROR検知時にログ収集+概要生成まで自動実行してから起票する
 (cd ../../demo-app && node watchdog.js &)
 
 # 4. デモ用リクエストを流してバグを発火
-curl -s http://localhost:3000/api/notes/2   # 偶数ID → 500
-curl -s http://localhost:3000/api/notes/4
+curl -s http://localhost:3002/api/robots/RBT-DOG-02   # stock=0商品 → 500 (バグ1)
+curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"payment_method":"invoice","shipping_address":"Tokyo"}' \
+  http://localhost:3002/api/orders                     # 請求書払い → 500 (バグ2)
 
 # 5. Excelドライバをフォアグラウンド起動 (状態機械が回る)
 node excel-driver.js --xlsx ../examples/incident_management.xlsx
@@ -355,7 +376,7 @@ node excel-driver.js --xlsx ../examples/incident_management.xlsx
 |-------|--------|------|
 | 0 | 本SPEC.md + DEMO_FLOW.md | なし |
 | 1 | demo-app (server + views + logs + bug-config) | 0 |
-| 2 | watchdog.js (Excel起票) | 1 |
+| 2 | watchdog.js (ログ収集+概要生成+Excel起票) | 1 |
 | 3 | Excel状態遷移列を含む incident_management.xlsx 雛形 | 0 |
 | 4 | orchestrator/excel-driver.js (状態機械) | 3 |
 | 5 | incident-analyzer サブエージェント登録 | 4 |
@@ -367,12 +388,12 @@ node excel-driver.js --xlsx ../examples/incident_management.xlsx
 
 ---
 
-## 8. 未決事項 / 議論待ち
+## 8. 決定済み事項 (Phase 0時点の未決事項の結論)
 
-1. **サブエージェントの呼び出し方式**: `claude --agent` CLI か / Anthropic API直叩き か。CLI依存を許容するかどうか。
-2. **watchdog の実装粒度**: tail方式か / Express の middleware で直接Excel叩くか。前者の方が「ログを見て気付く」感が出るのでSPECは前者採用。
-3. **本番用SSHか、demo-app 直読みか**: 「デモ」なので既存のDockerクラスタに demo-app のログを流し込むと重い。**demo-app は Docker コンテナ内 (server1) で動かして既存 SSH 経路をそのまま使う** のが素直。
-4. **Excel破損対策**: 複数プロセスが同時書き込みすると xlsx が壊れる。excel-driver.js を **唯一の書き手** にし、他は "書きたい内容を stdout に JSON 出力 → driver が拾って書く" 契約にする。
+1. **サブエージェントの呼び出し方式**: `claude --agent <name> --print` をCLI越しに子プロセスとして起動する方式に決定 (`orchestrator/lib/subagent-invoker.js`)。
+2. **watchdog の実装粒度**: tail方式に決定。ただしバイト位置ではなく前回読み取った全文との比較方式 (内容比較) を採用し、リセット直後に同一バイト数のログが再書き込みされるケースでの検知漏れを防いでいる。
+3. **本番用SSHか、demo-app 直読みか**: **demo-app は EC2 ホスト上で直接 Node プロセスとして動かす**方式に決定。ログファイル (`demo-app/logs/`) のみを Docker `log-server1` の `/tmp/logs/demo-app/` に bind mount し、既存の SSH 経路 (log-collector-skill) をそのまま使う。demo-appプロセス自体はコンテナ内では動かさない。
+4. **Excel破損対策**: `orchestrator/lib/excel-io.js` の `updateRow`/`readRows` と `demo-app/watchdog.js` の `saveWorkbook` それぞれが、同一プロセス内では `serialize()` (Promiseキュー) で書き込みを直列化。さらに `watchdog.js` はログ収集・概要生成をExcel書き込みの**前**に完了させてから1回だけ追記するため、書き込み自体の競合機会を最小化している (一時ファイル書き込み→rename方式で原子性も確保)。
 
 ---
 

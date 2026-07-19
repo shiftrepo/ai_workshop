@@ -14,7 +14,7 @@ auto-repair-demo/
 ├── DEMO_FLOW.md                     E2E 時系列シナリオ
 ├── README.md                        このファイル
 ├── examples/
-│   ├── incident_management_template.xlsx   ヘッダのみの雛形 (A〜L列)
+│   ├── incident_management_template.xlsx   ヘッダのみの雛形 (A〜M列)
 │   └── incident_management.xlsx            実行時に生成 (状態機械の唯一の真実)
 ├── orchestrator/
 │   ├── excel-driver.js              Excel 状態機械の司令塔
@@ -24,14 +24,16 @@ auto-repair-demo/
 │   ├── demo-config.json             モデル/effort/タイムアウト設定 (親CC非依存)
 │   ├── lib/excel-io.js              Excel 書き込みのシリアライザ
 │   ├── lib/subagent-invoker.js      claude --agent 子プロセス起動
+│   ├── lib/driver-core.js           状態機械 (ログ収集済み以降を担当)
 │   ├── scripts/gen-template.js      雛形 xlsx 生成
 │   └── package.json
-└── output/                          log_collector が書き出す結果 xlsx
+└── output/                          log-collection-skill.js が書き出す結果 xlsx
 ```
 
 関連:
-- `../demo-app/` — RoboMart Web アプリ本体 (バグ2種入り) + watchdog
-- `../../..*.claude/agents/{incident-analyzer,repair-planner,pr-publisher}.md` — Claude Code サブエージェント定義
+- `../demo-app/` — RoboMart Web アプリ本体 (バグ2種入り) + watchdog (起票前にSSHログ収集+LLM概要生成を実行)
+- `../log-collector-skill/scripts/log-collection-skill.js` — SSHログ収集の実体 (watchdog.jsからspawn)
+- `../../..*.claude/agents/{log-summarizer,incident-analyzer,repair-planner,pr-publisher}.md` — Claude Code サブエージェント定義
 
 ## 公開URL
 
@@ -82,8 +84,9 @@ cd projects/log_collector/auto-repair-demo/orchestrator
 #    (内部なら http://localhost:4001 でも同じ)
 #    → Excel の中身がテーブル表示され、3秒毎に自動更新される
 
-# 3. バグ発火で「インシデント検出」として自動起票。Web UI のボタンで進める:
-#    インシデント検出 ─[▶調査＆改修案]→ ログ収集→解析→改修案 → 要承認 ★停止
+# 3. バグ発火で watchdog がSSHログ収集+LLM概要生成を終えてから「ログ収集済み」として自動起票。
+#    Web UI のボタンで進める:
+#    ログ収集済み ─[▶調査＆改修案]→ 一次解析→改修案 → 要承認 ★停止
 #    承認者記入+PR作成待ち → 対応完了 (PR自動発行)
 ```
 
@@ -91,42 +94,44 @@ cd projects/log_collector/auto-repair-demo/orchestrator
 
 ## 手動ゲート (2段)
 
-バグ発火を watchdog が検知して Excel に書き込んだ時点で、既に `インシデント検出`
-(=確認待ち) として起票される。重い AI 処理 (調査/改修/PR) の前に人が取捨選択できるよう
-**各段を手動ゲート**にしている。自動では進まない。
+バグ発火を watchdog が検知すると、まずSSHログ収集(log-collection-skill.js)とLLM概要生成
+(log-summarizer)を自ら完了させ、その結果を持つ行を初めて `ログ収集済み` (=確認待ち)
+として起票する。空の行が先に現れてボタンを押すとログが集まる、という順序ではない。
+重い AI 処理 (一次解析/改修案/PR) の前に人が取捨選択できるよう **各段を手動ゲート**
+にしている。自動では進まない。
 
-### ゲート① インシデント検出 → 要承認 (▶ 調査＆改修案)
+### ゲート① ログ収集済み → 要承認 (▶ 調査＆改修案)
 
-`インシデント検出` の行で **▶ 調査＆改修案** ボタン → 以下を一気に実行し `要承認` で停止 (数分):
-1. log_collector が SSH で該当ログ (TrackID一致) を収集 → `ログ収集済み`
-2. incident-analyzer が一次解析 → `解析済み`
-3. repair-planner が改修案作成 → `要承認`
+起票時点で既に収集ログ(H列)・概要(D列)が揃っている。`ログ収集済み` の行で
+**▶ 調査＆改修案** ボタン → 以下を一気に実行し `要承認` で停止 (数十秒):
+1. incident-analyzer が一次解析 → `解析済み`
+2. repair-planner が改修案作成 → `要承認`
 
 不要なインシデントはボタンを押さず、ステータスを `対応完了` に手動変更して捨ててよい。
 
 ### ゲート② 要承認 → PR発行 (承認後)
 
-`要承認` で改修案 (I 列) を確認したら:
-1. **承認者** カラム (J列) に自分の名前を入れる (Enter または blur で即保存)
-2. **ステータス** カラム (E列) のドロップダウンで **`PR作成待ち`** を選ぶ (即保存)
+`要承認` で改修案 (J 列) を確認したら:
+1. **承認者** カラム (K列) に自分の名前を入れる (Enter または blur で即保存)
+2. **ステータス** カラム (F列) のドロップダウンで **`PR作成待ち`** を選ぶ (即保存)
 
 ステータス変更を検知して `pr-publisher` が自動起動:
-- `fix/inc<番号>-<TrackID>` ブランチを切る (`origin/logcollecter-ai` から)
+- `fix/inc<番号>-<TrackID>` ブランチを切る (`origin/main` から)
 - 改修案の diff を実コードに適用 → コミット → push → `gh pr create`
-- K 列に PR URL を書き戻し → E 列を `対応完了` に更新
+- L 列に PR URL を書き戻し → F 列を `対応完了` に更新
 
 ## 状態機械
 
 | ステータス | 種別 | 起動対象 (ボタン) | 次のステータス |
 |-----------|------|------------------|---------------|
-| **インシデント検出** | **★手動ゲート/起票時** | `log-collector-skill` (▶調査＆改修案) | ログ収集済み |
-| ログ収集済み | 自動可 | `claude --agent incident-analyzer` | 解析済み |
+| **ログ収集済み** | **★手動ゲート/起票時** | `claude --agent incident-analyzer` (▶調査＆改修案) | 解析済み |
 | 解析済み | 自動可 | `claude --agent repair-planner` | 要承認 |
 | **要承認** | **★手動ゲート** | — (承認者記入+PR作成待ちで発火) | — |
 | PR作成待ち | 自動可 | `claude --agent pr-publisher` | 対応完了 |
 | **対応完了** | **★終端** | — | — |
 
-`▶ 調査＆改修案` は「インシデント検出 → ログ収集済み → 解析済み → 要承認」を一気に実行 (手動ゲート要承認で停止)。
+ログ収集(SSH)とLLM概要生成は `demo-app/watchdog.js` が起票前に実行するため、この表には
+含まれない。`▶ 調査＆改修案` は「ログ収集済み → 解析済み → 要承認」を一気に実行 (手動ゲート要承認で停止)。
 
 ## Web UI 単体起動 (状態機械なしで Excel を眺めるだけ)
 
@@ -152,7 +157,7 @@ node web-ui.js
 
 以下の列は Web UI からは編集できない (書き込み専用のエージェント/watchdog の担当):
 
-- ID, タイムスタンプ, 概要, 収集ログサマリ, 一次解析結果, 改修案, PR URL, 最終更新
+- ID, TrackID, タイムスタンプ, 概要, 収集ログ, 一次解析結果, 改修案, PR URL, 最終更新
 
 ## dry-run
 

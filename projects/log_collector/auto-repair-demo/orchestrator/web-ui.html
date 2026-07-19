@@ -47,6 +47,7 @@
     #log-panel { margin-top: 16px; background: #111827; color: #d1d5db; font-family: ui-monospace, monospace; font-size: 11px; padding: 10px; max-height: 200px; overflow-y: auto; border-radius: 4px; }
     #log-panel pre { margin: 0; white-space: pre-wrap; word-break: break-all; }
     .console-panel { margin-top: 12px; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+    .console-legend { background: #f3f4f6; border-bottom: 1px solid var(--border); padding: 6px 10px; font-size: 11px; color: #374151; }
     .console-tabs { display: flex; gap: 0; background: #1f2937; padding: 4px 4px 0 4px; overflow-x: auto; }
     .console-tabs button {
       background: #374151; color: #d1d5db; border: 0; border-radius: 4px 4px 0 0;
@@ -72,6 +73,7 @@
     .console-body .lvl-INFO { color: #a7f3d0; }
     .console-body .missing { color: #6b7280; font-style: italic; }
     .console-body .path { color: #6b7280; font-size: 10px; }
+    .console-body .trackid-hl { background: #7c3aed; color: #fff; padding: 0 2px; border-radius: 2px; font-weight: bold; }
     .row-actions { display: flex; gap: 4px; flex-direction: column; }
     .row-actions button { font-size: 11px; padding: 3px 6px; }
     .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
@@ -104,8 +106,8 @@
       <span style="background:#d1fae5">対応完了</span>
       <br>
       <b>操作フロー</b>:
-      バグ発火で <span style="background:#fed7aa;padding:1px 4px;">インシデント検出</span> として自動起票。
-      ①<b>▶ 調査＆改修案</b> で ログ収集→解析→改修案 を実行し <span style="background:#fecaca;padding:1px 4px;">要承認</span> まで (数分)。
+      バグ発火で watchdog が SSHログ収集+LLM概要記載まで実行し <span style="background:#fef3c7;padding:1px 4px;">ログ収集済み</span> として自動起票。収集ログ(H列)・概要(D列)を見て続行を判断。
+      ①<b>▶ 調査＆改修案</b> で 一次解析→改修案 を実行し <span style="background:#fecaca;padding:1px 4px;">要承認</span> まで。
       ②承認者を入力しステータスを <span style="background:#bbf7d0;padding:1px 4px;">PR作成待ち</span> にすると <b>自動で PR 発行</b>。
       列幅はヘッダ右端をドラッグ / テーブルは横スクロール可。
     </div>
@@ -113,6 +115,7 @@
       <table id="grid">
         <colgroup>
           <col style="width:70px" />
+          <col style="width:90px" />
           <col style="width:170px" />
           <col style="width:280px" />
           <col style="width:110px" />
@@ -129,18 +132,19 @@
         <thead>
           <tr>
             <th data-col="0">ID</th>
-            <th data-col="1">時刻</th>
-            <th data-col="2">概要</th>
-            <th data-col="3">担当者</th>
-            <th data-col="4">ステータス</th>
-            <th data-col="5">調査状況</th>
-            <th data-col="6">収集ログ</th>
-            <th data-col="7">一次解析</th>
-            <th data-col="8">改修案</th>
-            <th data-col="9">承認者</th>
-            <th data-col="10">PR URL</th>
-            <th data-col="11">最終更新</th>
-            <th data-col="12">操作</th>
+            <th data-col="1">TrackID</th>
+            <th data-col="2">時刻</th>
+            <th data-col="3">概要</th>
+            <th data-col="4">担当者</th>
+            <th data-col="5">ステータス</th>
+            <th data-col="6">調査状況</th>
+            <th data-col="7">収集ログ</th>
+            <th data-col="8">一次解析</th>
+            <th data-col="9">改修案</th>
+            <th data-col="10">承認者</th>
+            <th data-col="11">PR URL</th>
+            <th data-col="12">最終更新</th>
+            <th data-col="13">操作</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -149,12 +153,16 @@
     <div id="log-panel"><pre id="log-text"></pre></div>
 
     <div class="console-panel">
+      <div class="console-legend">
+        🖥️ <b>client</b> = アプリ層 (demo-app) &nbsp;/&nbsp; 🧩 <b>service</b> = 機能サーバ層 &nbsp;—&nbsp;
+        同じ <b>TrackID</b> で串刺しできることを見るには client/service タブを見比べてください
+      </div>
       <div class="console-tabs">
-        <button data-source="webui" class="active">webui</button>
+        <button data-source="client" class="active">🖥️ client</button>
+        <button data-source="service">🧩 service</button>
         <button data-source="watchdog">watchdog</button>
-        <button data-source="robomart">robomart</button>
-        <button data-source="applog">app.log (raw)</button>
-        <button data-source="driver">driver</button>
+        <button data-source="webui">web-ui</button>
+        <button data-source="robomart">robomart (stdout)</button>
         <div class="console-controls">
           <span class="path" id="console-path"></span>
           <label><input type="checkbox" id="console-follow" checked /> follow tail</label>
@@ -213,10 +221,15 @@
     function actionsCell(row) {
       if (row.status === 'インシデント検出') {
         return `<div class="row-actions">
-          <button class="ok advance-btn" data-id="${esc(row.id)}" title="ログ収集 → 一次解析 → 改修案作成 を実行し 要承認 まで進める (数分)">▶ 調査＆改修案</button>
+          <button class="ok advance-btn" data-id="${esc(row.id)}" title="ログ収集(H列)→概要記載(D列) を実行し ログ収集済み で停止。内容を確認してから続きを判断">▶ 調査＆改修案</button>
         </div>`;
       }
-      if (row.status === 'ログ収集済み' || row.status === '解析済み') {
+      if (row.status === 'ログ収集済み') {
+        return `<div class="row-actions">
+          <button class="ok advance-btn" data-id="${esc(row.id)}" title="一次解析→改修案 を実行し 要承認 まで進める">▶ 調査＆改修案</button>
+        </div>`;
+      }
+      if (row.status === '解析済み') {
         return `<div class="row-actions">
           <button class="ok advance-btn" data-id="${esc(row.id)}" title="要承認まで進める">▶ 続きを実行</button>
         </div>`;
@@ -243,7 +256,7 @@
       const j = await r.json();
       document.getElementById('xlsx-path').textContent = j.xlsx || '';
       if (j.missing) {
-        document.getElementById('tbody').innerHTML = `<tr><td colspan="13" class="empty">${esc(j.xlsx)} が存在しません。run-demo.sh を実行してください。</td></tr>`;
+        document.getElementById('tbody').innerHTML = `<tr><td colspan="14" class="empty">${esc(j.xlsx)} が存在しません。run-demo.sh を実行してください。</td></tr>`;
         return;
       }
       currentRows = j.rows;
@@ -254,12 +267,13 @@
     function render() {
       const tbody = document.getElementById('tbody');
       if (currentRows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="13" class="empty">インシデントはまだありません。RoboMart でバグを発火させてください。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="14" class="empty">インシデントはまだありません。RoboMart でバグを発火させてください。</td></tr>`;
         return;
       }
       tbody.innerHTML = currentRows.map(r => `
         <tr class="status-${esc(r.status || '')}" data-row="${r.rowNum}">
           <td class="id-cell">${esc(r.id)}</td>
+          <td class="id-cell">${esc(r.trackId)}</td>
           <td>${esc(r.ts)}</td>
           <td class="long">${esc(r.summary)}</td>
           <td>${textInput(r, 'assignee')}</td>
@@ -432,23 +446,28 @@
     });
 
     // -- console pane (tail of server-side log files) --
-    let consoleSource = 'webui';
+    let consoleSource = 'client';
+    function highlightTrackId(line) {
+      return line.replace(/TrackID:([A-Z0-9]{3,10})/g, 'TrackID:<span class="trackid-hl">$1</span>');
+    }
     async function fetchConsole() {
       try {
         const r = await fetch(`/api/console?source=${encodeURIComponent(consoleSource)}&lines=120`);
         const j = await r.json();
         const body = document.getElementById('console-body');
         const follow = document.getElementById('console-follow').checked;
-        document.getElementById('console-path').textContent = j.path || '';
+        document.getElementById('console-path').textContent = j.label ? `${j.label}  (${j.path})` : (j.path || '');
         if (j.missing) {
-          body.innerHTML = `<span class="missing">(${esc(j.path)} does not exist yet)</span>`;
+          body.innerHTML = `<span class="missing">(${esc(j.path)} はまだ存在しません。バグを発火させるとログが出力されます)</span>`;
           return;
         }
         const lines = (j.lines || []).map(line => {
           const cls = /\sERROR\s|\bERROR:/.test(line) ? 'lvl-ERROR'
                     : /\sWARN\s|\bWARN:/.test(line) ? 'lvl-WARN'
                     : /\sINFO\s|\bINFO:/.test(line) ? 'lvl-INFO' : '';
-          return cls ? `<span class="${cls}">${esc(line)}</span>` : esc(line);
+          const escaped = esc(line);
+          const withTrackId = highlightTrackId(escaped);
+          return cls ? `<span class="${cls}">${withTrackId}</span>` : withTrackId;
         });
         body.innerHTML = lines.join('\n');
         if (follow) body.scrollTop = body.scrollHeight;

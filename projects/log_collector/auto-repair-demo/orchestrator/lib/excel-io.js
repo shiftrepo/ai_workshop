@@ -3,9 +3,9 @@ const path = require('path');
 const ExcelJS = require('exceljs');
 
 const COLS = {
-  id: 1, ts: 2, summary: 3, assignee: 4, status: 5, note: 6,
-  collect_summary: 7, analysis: 8, repair_plan: 9,
-  approver: 10, pr_url: 11, updated: 12,
+  id: 1, trackId: 2, ts: 3, summary: 4, assignee: 5, status: 6, note: 7,
+  collect_summary: 8, analysis: 9, repair_plan: 10,
+  approver: 11, pr_url: 12, updated: 13,
 };
 
 let queue = Promise.resolve();
@@ -52,7 +52,7 @@ function readRows(xlsxPath) {
         id: cell(COLS.id),
         ts: cell(COLS.ts),
         summary,
-        trackId: extractTrackId(summary),
+        trackId: cell(COLS.trackId) || extractTrackId(summary),
         assignee: cell(COLS.assignee),
         status: cell(COLS.status),
         note: cell(COLS.note),

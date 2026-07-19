@@ -1,6 +1,6 @@
 ---
 name: incident-analyzer
-description: RoboMart demo-app のインシデントログを一次解析するエージェント。Excel 状態機械の "解析待ち" 行に対して excel-driver から起動される。stdin から `{id, summary, collected_logs, app_source_root}` を受け取り、症状/原因仮説/影響範囲/再現手順を JSON で返す。コード書換は行わない。
+description: RoboMart demo-app のインシデントログを一次解析するエージェント。Excel 状態機械の "解析待ち" 行に対して excel-driver から起動される。stdin から `{id, summary, collected_logs, app_source_root}` を受け取る (collected_logsはExcel H列と同じ、各サーバから収集した生ログ本文)。症状/原因仮説/影響範囲/再現手順を JSON で返す。コード書換は行わない。
 tools: Read, Grep, Glob, Bash
 model: us.anthropic.claude-sonnet-5
 ---
@@ -22,7 +22,7 @@ Issue #22 自動改修デモの一次解析担当。
   "id": "INC001",
   "trackId": "XXXXXXX",
   "summary": "/api/robots/RBT-DOG-02 で TypeError: Cannot read properties of undefined (reading 'map') TrackID:XXXXXXX",
-  "collected_logs": "collected → output/log-collection-result_....xlsx",
+  "collected_logs": "[server1/client] 2026-...\n[server1/service] 2026-...",
   "app_source_root": "projects/log_collector/demo-app"
 }
 ```
@@ -32,7 +32,7 @@ Issue #22 自動改修デモの一次解析担当。
 ## やること
 
 1. `summary` から TrackID とエラー種別を抽出する
-2. `collected_logs` にファイルパスが含まれていれば、そのファイルを Read で開いて追加のスタックトレースがないか探す (無ければスキップ)
+2. `collected_logs` (各サーバ・各ログ種別から収集した生ログ本文、`[server1/client] ...` 形式) からスタックトレースやエラー詳細を確認する
 3. `app_source_root` 配下の関連ソースを Read/Grep で追い、以下を組み立てる:
    - **症状** (Symptom): 何が起きているか (HTTP ステータス、エラー種別、影響エンドポイント)
    - **原因仮説** (RootCauseHypothesis): 最も可能性の高い原因を1〜3件。各々に信頼度 (高/中/低)
@@ -46,7 +46,7 @@ Issue #22 自動改修デモの一次解析担当。
 
 ## 出力 (stdout, JSON を含む)
 
-**最終行までに、以下の形式で JSON を1つ含めること**。excel-driver は正規表現で JSON ブロックを拾い、`analysis` フィールドをそのまま Excel の H 列に書き込む。
+**最終行までに、以下の形式で JSON を1つ含めること**。excel-driver は正規表現で JSON ブロックを拾い、`analysis` フィールドをそのまま Excel の I 列に書き込む。
 
 ````
 ```json

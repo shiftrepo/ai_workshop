@@ -9,3 +9,7 @@ package-lock.json
 !bug-config.json
 !.demo-templates/
 !.demo-templates/bug-config.json
+
+# 親 .gitignore の lib/ (Python向け) 除外を打ち消し、src/lib は追跡する
+!src/lib/
+!src/lib/*.js

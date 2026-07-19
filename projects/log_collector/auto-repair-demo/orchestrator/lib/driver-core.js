@@ -1,29 +1,12 @@
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
 const { readRows, updateRow } = require('./excel-io');
-const { invokeClaude, extractJson, loadConfig } = require('./subagent-invoker');
+const { invokeClaude, extractJson } = require('./subagent-invoker');
 
 const XLSX = process.env.INCIDENT_XLSX
   || path.join(__dirname, '..', '..', 'examples', 'incident_management.xlsx');
 const DEMO_APP = path.join(__dirname, '..', '..', '..', 'demo-app');
 const REPO_ROOT = path.join(__dirname, '..', '..', '..', '..', '..');
-const OUTPUT_DIR = path.join(__dirname, '..', '..', 'output');
-const LOG_COLLECTOR = path.join(__dirname, '..', '..', '..', 'log-collector-skill', 'scripts', 'log-collection-skill.js');
-
-// demo-config.json の logCollector 設定から SSH 接続用の環境変数を組み立てる
-function logCollectorEnv() {
-  const cfg = loadConfig().logCollector;
-  if (!cfg) return {};
-  const env = {};
-  if (cfg.sshKeyPath) env.SSH_KEY_PATH = path.join(REPO_ROOT, cfg.sshKeyPath);
-  if (cfg.sshUser) env.SSH_USER = cfg.sshUser;
-  (cfg.servers || []).forEach((s, i) => {
-    env[`SSH_HOST_${i + 1}`] = s.host;
-    env[`SSH_PORT_${i + 1}`] = String(s.port);
-  });
-  return env;
-}
 
 const inFlight = new Set();
 let logSink = (msg) => console.log(`[driver ${new Date().toISOString()}] ${msg}`);
@@ -37,36 +20,6 @@ function rowTag(row) {
   if (row && row.id) parts.push(row.id);
   if (row && row.trackId) parts.push(`TrackID:${row.trackId}`);
   return parts.length ? `[${parts.join(' ')}]` : '[?]';
-}
-
-async function runLogCollector(row, opts = {}) {
-  log(`${rowTag(row)} running log_collector`);
-  if (opts.dryRun) return { collect_summary: '[dry-run] log_collector skipped' };
-  return new Promise((resolve, reject) => {
-    const args = [LOG_COLLECTOR];
-    const child = spawn('node', args, {
-      env: {
-        ...process.env,
-        INPUT_FOLDER: path.dirname(XLSX),
-        OUTPUT_FOLDER: OUTPUT_DIR,
-        FILTER_STATUS: 'インシデント検出',   // log_collector が処理する行のステータス
-        ...logCollectorEnv(),   // demo-config.json の SSH 接続情報 (server1-3)
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    let out = '';
-    child.stdout.on('data', d => { out += d.toString(); });
-    child.stderr.on('data', d => { out += d.toString(); });
-    child.on('close', code => {
-      const files = fs.existsSync(OUTPUT_DIR) ? fs.readdirSync(OUTPUT_DIR).filter(f => f.endsWith('.xlsx')) : [];
-      const latest = files.sort().pop();
-      const summary = latest
-        ? `collected → output/${latest}${code !== 0 ? ` (exit ${code}, ログサーバ未起動の可能性)` : ''}`
-        : `no output (exit ${code}, ログサーバ未起動または対象TrackIDのログ0件)`;
-      resolve({ collect_summary: summary });
-    });
-    child.on('error', reject);
-  });
 }
 
 async function runIncidentAnalyzer(row, opts = {}) {
@@ -127,12 +80,12 @@ async function runPrPublisher(row, opts = {}) {
   return { pr_url };
 }
 
-// 状態機械: watchdog は起票時に最初から「インシデント検出」で書き込む (=起票が確認待ち)。
-//   インシデント検出 ─[ログ収集]→ ログ収集済み ─[調査]→ 解析済み ─[改修案]→ 要承認 ★手動ゲート
+// 状態機械: watchdog がログ収集(SSH)+概要生成(LLM)まで終えた後に初めて
+//   「ログ収集済み」として起票する (=起票が確認待ち、手動ゲート①)。
+//   ログ収集済み ─[調査]→ 解析済み ─[改修案]→ 要承認 ★手動ゲート②
 //   要承認 ─(承認者+PR作成待ちを人が記入)→ PR作成待ち ─[PR発行]→ 対応完了
-// 「▶ 調査＆改修案」ボタンで インシデント検出 → 要承認 まで一気に実行 (log_collector+analyzer+planner)。
+// 「▶ 調査＆改修案」ボタンで ログ収集済み → 要承認 まで実行 (analyzer+planner)。
 const HANDLERS = {
-  'インシデント検出': { fn: runLogCollector,       next: 'ログ収集済み' },
   'ログ収集済み':     { fn: runIncidentAnalyzer,   next: '解析済み' },
   '解析済み':         { fn: runRepairPlanner,      next: '要承認' },
   'PR作成待ち':       { fn: runPrPublisher,        next: '対応完了' },
@@ -169,7 +122,7 @@ async function processRowById(rowId, opts = {}) {
 }
 
 // 指定行を「次の手動ゲート」まで連続的に進める
-// インシデント検出 → ログ収集済み → 解析済み → 要承認 (log収集+調査+改修案を一気に実行し要承認で停止)
+// ログ収集済み → 解析済み → 要承認 (調査+改修案を一気に実行し要承認で停止)
 // PR作成待ち → 対応完了 (PR発行後に終端)
 async function advanceRowToGate(rowId, opts = {}) {
   const stages = [];
