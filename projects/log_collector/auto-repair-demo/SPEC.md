@@ -108,7 +108,7 @@
 | A | インシデントID | INC001 など |
 | B | TrackID | app.log/service.logを串刺しで結ぶ一意ID (watchdogがログから抽出して記入) |
 | C | タイムスタンプ | インシデント発生時刻 |
-| D | インシデント概要 | TrackID等を含む説明文 |
+| D | インシデント概要 | watchdog起票時はapp.logの1行から機械的に生成。ログ収集完了時にlog-summarizer(LLM)が収集した生ログから事象概要を再生成し上書き |
 | E | 担当者 | 担当者名 |
 | F | ステータス | **状態機械の遷移トリガー** |
 | G | 調査状況 | 調査メモ (log_collectorが追記) |
@@ -117,7 +117,7 @@
 
 | 列 | ヘッダー | 記入者 | 内容 |
 |----|----------|--------|------|
-| H | 収集ログサマリ | log_collector | 収集件数 + サーバ/ログ種別(client=app.log/service=service.log)別内訳 + 出力Excelファイル名 |
+| H | 収集ログ | log_collector | 各サーバ(client=app.log/service=service.log)から収集した生ログ本文をそのまま結合して格納 (`[server1/client] ...` 形式) |
 | I | 一次解析結果 | incident-analyzer | 症状/原因/影響範囲/再現手順 (JSON+人可読) |
 | J | 改修案 | repair-planner | 対象ファイル/変更方針/テスト計画 |
 | K | 承認者 | 人 | 改修案を承認した担当者名 |
@@ -165,11 +165,18 @@
 
 ## 4. サブエージェント階層
 
-### 4.1 3本のClaude Codeサブエージェント (すべて `agent-registration/` と同形式で登録)
+### 4.1 4本のClaude Codeサブエージェント (すべて `.claude/agents/` に同形式で登録)
+
+#### 0. `log-summarizer` — ログ収集ステップに組み込まれた概要生成エージェント
+- **発火**: `runLogCollector()` が log-collector-skill でSSH収集した直後 (`インシデント検出` → `ログ収集済み` 遷移の内部処理、独立したステータスは持たない)
+- **入力**: 収集した生ログ (H列に格納する内容と同じ、`raw_logs`として渡す)
+- **やること**: 発生した事象の概要を2〜3文で要約する。client/serviceの両方にログが見られる場合はその旨とTrackIDでの紐付きに触れる
+- **出力**: Excel D列 (インシデント概要) を、watchdogが書いた機械的な1行から上書き更新
+- **注意**: 原因分析・改修案・再現手順は書かない (incident-analyzer/repair-plannerの担当)
 
 #### A. `incident-analyzer` — 一次解析エージェント
 - **発火**: `インシデント検出` 行で人が「▶ 調査＆改修案」ボタンを押したとき (手動ゲート①)
-- **入力**: Excel の "インシデント検出" 行 + H列の収集ログサマリで示された生ログ.xlsx
+- **入力**: Excel の "インシデント検出" 行 + H列の収集ログ (各サーバから収集した生ログ本文)
 - **やること**:
   1. ログを読み、症状 (Symptom) と最も可能性の高い原因 (RootCauseHypothesis) を1〜3件挙げる
   2. 影響範囲 (どのエンドポイント/機能が壊れているか) を特定

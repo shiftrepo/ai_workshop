@@ -69,45 +69,51 @@ function parseCsv(text) {
   return rows;
 }
 
-// log_collector が出力したCSVから、対象タスクの行を server×logPath(client/service) 別に集計する
-function summarizeCollectedCsv(csvPath, taskId) {
+// log_collector が出力したCSVから、対象タスクの行を server×logPath(client/service) 別に抽出する
+function extractCollectedEntries(csvPath, taskId) {
   const text = fs.readFileSync(csvPath, 'utf8');
   const rows = parseCsv(text);
-  if (rows.length < 2) return null;
+  if (rows.length < 2) return [];
   const header = rows[0];
   const idx = {
     taskId: header.indexOf('Task ID'),
     server: header.indexOf('Server'),
     logPath: header.indexOf('Log Path'),
+    content: header.indexOf('Content'),
   };
-  const counts = new Map(); // key: `${server}:${kind}` -> count
-  let total = 0;
+  const entries = [];
   for (const r of rows.slice(1)) {
     if (r[idx.taskId] !== taskId) continue;
     const server = r[idx.server] || '?';
     const logPath = r[idx.logPath] || '';
     const kind = /service\.log/.test(logPath) ? 'service' : /app\.log/.test(logPath) ? 'client' : 'other';
-    const key = `${server}:${kind}`;
-    counts.set(key, (counts.get(key) || 0) + 1);
-    total += 1;
+    entries.push({ server, kind, content: r[idx.content] || '' });
   }
-  if (total === 0) return null;
-  const breakdown = [...counts.entries()]
-    .sort()
-    .map(([key, n]) => {
-      const [server, kind] = key.split(':');
-      return `${server}/${kind}=${n}`;
-    })
-    .join(', ');
-  return { total, breakdown };
+  return entries;
 }
 
-async function runLogCollector(row, opts = {}) {
-  log(`${rowTag(row)} running log_collector`);
-  if (opts.dryRun) return { collect_summary: '[dry-run] log_collector skipped' };
+// 収集エントリを "[server1/client] <生ログ本文>" 形式で連結する (H列・LLM入力の両方で使う)
+function formatRawLogLines(entries) {
+  return entries.map(e => `[${e.server}/${e.kind}] ${e.content}`).join('\n');
+}
+
+// サーバ×ログ種別ごとの件数サマリ ("server1/client=3, server1/service=2")
+function summarizeCounts(entries) {
+  const counts = new Map();
+  for (const e of entries) {
+    const key = `${e.server}:${e.kind}`;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort()
+    .map(([key, n]) => { const [server, kind] = key.split(':'); return `${server}/${kind}=${n}`; })
+    .join(', ');
+}
+
+// log-collection-skill.js を子プロセスで実行し、終了コードを待つだけの薄いラッパー
+function spawnLogCollector() {
   return new Promise((resolve, reject) => {
-    const args = [LOG_COLLECTOR];
-    const child = spawn('node', args, {
+    const child = spawn('node', [LOG_COLLECTOR], {
       env: {
         ...process.env,
         INPUT_FOLDER: path.dirname(XLSX),
@@ -120,29 +126,60 @@ async function runLogCollector(row, opts = {}) {
     let out = '';
     child.stdout.on('data', d => { out += d.toString(); });
     child.stderr.on('data', d => { out += d.toString(); });
-    child.on('close', code => {
-      const files = fs.existsSync(OUTPUT_DIR) ? fs.readdirSync(OUTPUT_DIR).filter(f => f.endsWith('.xlsx')) : [];
-      const latest = files.sort().pop();
-      if (!latest) {
-        resolve({ collect_summary: `no output (exit ${code}, ログサーバ未起動または対象TrackIDのログ0件)` });
-        return;
-      }
-      const csvName = latest.replace(/\.xlsx$/, '.csv');
-      const csvPath = path.join(OUTPUT_DIR, csvName);
-      let detail = '';
-      if (fs.existsSync(csvPath)) {
-        try {
-          const s = summarizeCollectedCsv(csvPath, row.id);
-          if (s) detail = ` — ${s.total}件 (${s.breakdown})`;
-        } catch (e) {
-          detail = ` (集計失敗: ${e.message})`;
-        }
-      }
-      const summary = `collected${detail} → output/${latest}${code !== 0 ? ` (exit ${code}, ログサーバ未起動の可能性)` : ''}`;
-      resolve({ collect_summary: summary });
-    });
+    child.on('close', code => resolve({ code, out }));
     child.on('error', reject);
   });
+}
+
+async function runLogCollector(row, opts = {}) {
+  log(`${rowTag(row)} running log_collector`);
+  if (opts.dryRun) return { collect_summary: '[dry-run] log_collector skipped' };
+
+  const { code } = await spawnLogCollector();
+
+  const files = fs.existsSync(OUTPUT_DIR) ? fs.readdirSync(OUTPUT_DIR).filter(f => f.endsWith('.xlsx')) : [];
+  const latest = files.sort().pop();
+  if (!latest) {
+    return { collect_summary: `no output (exit ${code}, ログサーバ未起動または対象TrackIDのログ0件)` };
+  }
+
+  const csvName = latest.replace(/\.xlsx$/, '.csv');
+  const csvPath = path.join(OUTPUT_DIR, csvName);
+  let entries = [];
+  if (fs.existsSync(csvPath)) {
+    try {
+      entries = extractCollectedEntries(csvPath, row.id);
+    } catch (e) {
+      log(`${rowTag(row)} CSV解析失敗: ${e.message}`);
+    }
+  }
+
+  if (entries.length === 0) {
+    return { collect_summary: `no matching entries in output/${latest}${code !== 0 ? ` (exit ${code})` : ''}` };
+  }
+
+  // H列 (収集ログ) には各サーバから取得した生ログをそのまま結合して格納する
+  const rawLogs = formatRawLogLines(entries);
+  const collect_summary = rawLogs;
+
+  // D列 (インシデント概要) は、収集した生ログを元にLLMで事象概要を再生成する
+  const updates = { collect_summary };
+  if (opts.skipSummary) {
+    return updates;
+  }
+  try {
+    const input = { id: row.id, trackId: row.trackId, raw_logs: rawLogs };
+    const { stdout } = await invokeClaude('log-summarizer', JSON.stringify(input));
+    const parsed = extractJson(stdout);
+    if (parsed && parsed.summary) {
+      updates.summary = parsed.summary;
+    } else {
+      log(`${rowTag(row)} log-summarizer: JSON抽出失敗、概要(D列)は既存値を維持`);
+    }
+  } catch (e) {
+    log(`${rowTag(row)} log-summarizer error: ${e.message} (概要(D列)は既存値を維持)`);
+  }
+  return updates;
 }
 
 async function runIncidentAnalyzer(row, opts = {}) {
