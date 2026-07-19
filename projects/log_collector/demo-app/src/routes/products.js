@@ -1,7 +1,6 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const { isEnabled } = require('../lib/bug-switch');
 
 const router = express.Router();
 
@@ -24,12 +23,9 @@ router.get('/:sku', (req, res, next) => {
     const robot = robots.find(r => r.sku === req.params.sku);
     if (!robot) return res.status(404).json({ error: 'robot not found' });
 
-    let relatedList;
-    if (robot.stock === 0 && isEnabled('PRODUCT_STOCK_ZERO_NPE')) {
-      relatedList = robot.out_of_stock_alternatives;
-    } else {
-      relatedList = robot.related || [];
-    }
+    // stock=0 でも robot.related を使う。out_of_stock_alternatives は
+    // data/robots.json に存在しないフィールドで未定義参照によりTypeErrorを起こしていた(TrackID:7B0FD69)。
+    const relatedList = Array.isArray(robot.related) ? robot.related : [];
 
     const related = relatedList.map(sku => {
       const r = robots.find(x => x.sku === sku);
