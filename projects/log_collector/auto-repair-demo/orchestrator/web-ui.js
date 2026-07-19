@@ -30,6 +30,7 @@ const PORT = Number(process.env.WEB_UI_PORT || 4001);
 const DEMO_APP = path.join(__dirname, '..', '..', 'demo-app');
 const TEMPLATE_PATH = path.join(__dirname, '..', 'examples', 'incident_management_template.xlsx');
 const APP_LOG = path.join(DEMO_APP, 'logs', 'app.log');
+const SERVICE_LOG = path.join(DEMO_APP, 'logs', 'service.log');
 const REPO_ROOT = path.join(__dirname, '..', '..', '..', '..');
 const REPO_SLUG = process.env.GH_REPO || 'shiftrepo/ai_workshop';
 
@@ -110,24 +111,28 @@ app.get('/api/logs', (req, res) => {
   res.json({ logs: recentLogs.slice(-100) });
 });
 
+// タブ名はデモの役割 (アプリ層=client / 機能サーバ層=service) をそのまま表す。
+// client/service は demo-app が同一プロセス内で書き分けている2ファイル (§SPEC.md 5.1) で、
+// 実際に別サーバで処理しているわけではないが、TrackIDで串刺しできることを見せるのが目的。
 const CONSOLE_SOURCES = {
-  robomart: '/tmp/robomart.log',
-  watchdog: '/tmp/watchdog.log',
-  webui:    '/tmp/webui.log',
-  driver:   '/tmp/driver.log',
-  applog:   APP_LOG,
+  client:   { path: APP_LOG,     label: 'client (app.log) — アプリ層ログ。SSH越しにlog-server1へ収集される' },
+  service:  { path: SERVICE_LOG, label: 'service (service.log) — 機能サーバ層ログ。同じTrackIDでclientと紐づく' },
+  watchdog: { path: '/tmp/watchdog.log', label: 'watchdog — app.logを監視しExcelへ起票するプロセスのログ' },
+  webui:    { path: '/tmp/webui.log',    label: 'web-ui — 本画面の操作/状態遷移ログ (driver-core含む)' },
+  robomart: { path: '/tmp/robomart.log', label: 'robomart (stdout) — demo-appプロセスの起動/標準出力' },
 };
 
 app.get('/api/console', (req, res) => {
-  const source = req.query.source || 'robomart';
+  const source = req.query.source || 'client';
   const lines = Math.min(500, Number(req.query.lines) || 80);
-  const filePath = CONSOLE_SOURCES[source];
-  if (!filePath) return res.status(400).json({ error: `unknown source. valid: ${Object.keys(CONSOLE_SOURCES).join(',')}` });
-  if (!fs.existsSync(filePath)) return res.json({ source, path: filePath, lines: [], missing: true });
+  const entry = CONSOLE_SOURCES[source];
+  if (!entry) return res.status(400).json({ error: `unknown source. valid: ${Object.keys(CONSOLE_SOURCES).join(',')}` });
+  const filePath = entry.path;
+  if (!fs.existsSync(filePath)) return res.json({ source, path: filePath, label: entry.label, lines: [], missing: true });
   try {
     const content = fs.readFileSync(filePath, 'utf8');
     const arr = content.split(/\r?\n/).filter(Boolean);
-    res.json({ source, path: filePath, lines: arr.slice(-lines) });
+    res.json({ source, path: filePath, label: entry.label, lines: arr.slice(-lines) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -284,6 +289,13 @@ app.post('/api/reset', async (req, res, next) => {
       pushLog(`[reset] logs/app.log truncated`);
     } catch (e) {
       summary.errors.push({ target: APP_LOG, error: e.message });
+    }
+
+    try {
+      fs.writeFileSync(SERVICE_LOG, '');
+      pushLog(`[reset] logs/service.log truncated`);
+    } catch (e) {
+      summary.errors.push({ target: SERVICE_LOG, error: e.message });
     }
 
     if (restoreCode) {

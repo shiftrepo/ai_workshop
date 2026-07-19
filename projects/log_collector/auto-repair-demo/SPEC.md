@@ -117,7 +117,7 @@
 
 | 列 | ヘッダー | 記入者 | 内容 |
 |----|----------|--------|------|
-| H | 収集ログサマリ | log_collector | 収集件数 + 出力Excelファイル名 |
+| H | 収集ログサマリ | log_collector | 収集件数 + サーバ/ログ種別(client=app.log/service=service.log)別内訳 + 出力Excelファイル名 |
 | I | 一次解析結果 | incident-analyzer | 症状/原因/影響範囲/再現手順 (JSON+人可読) |
 | J | 改修案 | repair-planner | 対象ファイル/変更方針/テスト計画 |
 | K | 承認者 | 人 | 改修案を承認した担当者名 |

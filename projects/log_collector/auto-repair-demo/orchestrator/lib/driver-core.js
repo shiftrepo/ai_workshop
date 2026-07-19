@@ -39,6 +39,69 @@ function rowTag(row) {
   return parts.length ? `[${parts.join(' ')}]` : '[?]';
 }
 
+// RFC4180準拠の簡易CSVパーサ (log-collection-skill.js の escapeCsvValue と対になる)
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; } else { inQuotes = false; }
+      } else {
+        field += c;
+      }
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ',') {
+      row.push(field); field = '';
+    } else if (c === '\n') {
+      row.push(field); field = ''; rows.push(row); row = [];
+    } else if (c === '\r') {
+      // skip
+    } else {
+      field += c;
+    }
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+// log_collector が出力したCSVから、対象タスクの行を server×logPath(client/service) 別に集計する
+function summarizeCollectedCsv(csvPath, taskId) {
+  const text = fs.readFileSync(csvPath, 'utf8');
+  const rows = parseCsv(text);
+  if (rows.length < 2) return null;
+  const header = rows[0];
+  const idx = {
+    taskId: header.indexOf('Task ID'),
+    server: header.indexOf('Server'),
+    logPath: header.indexOf('Log Path'),
+  };
+  const counts = new Map(); // key: `${server}:${kind}` -> count
+  let total = 0;
+  for (const r of rows.slice(1)) {
+    if (r[idx.taskId] !== taskId) continue;
+    const server = r[idx.server] || '?';
+    const logPath = r[idx.logPath] || '';
+    const kind = /service\.log/.test(logPath) ? 'service' : /app\.log/.test(logPath) ? 'client' : 'other';
+    const key = `${server}:${kind}`;
+    counts.set(key, (counts.get(key) || 0) + 1);
+    total += 1;
+  }
+  if (total === 0) return null;
+  const breakdown = [...counts.entries()]
+    .sort()
+    .map(([key, n]) => {
+      const [server, kind] = key.split(':');
+      return `${server}/${kind}=${n}`;
+    })
+    .join(', ');
+  return { total, breakdown };
+}
+
 async function runLogCollector(row, opts = {}) {
   log(`${rowTag(row)} running log_collector`);
   if (opts.dryRun) return { collect_summary: '[dry-run] log_collector skipped' };
@@ -60,9 +123,22 @@ async function runLogCollector(row, opts = {}) {
     child.on('close', code => {
       const files = fs.existsSync(OUTPUT_DIR) ? fs.readdirSync(OUTPUT_DIR).filter(f => f.endsWith('.xlsx')) : [];
       const latest = files.sort().pop();
-      const summary = latest
-        ? `collected → output/${latest}${code !== 0 ? ` (exit ${code}, ログサーバ未起動の可能性)` : ''}`
-        : `no output (exit ${code}, ログサーバ未起動または対象TrackIDのログ0件)`;
+      if (!latest) {
+        resolve({ collect_summary: `no output (exit ${code}, ログサーバ未起動または対象TrackIDのログ0件)` });
+        return;
+      }
+      const csvName = latest.replace(/\.xlsx$/, '.csv');
+      const csvPath = path.join(OUTPUT_DIR, csvName);
+      let detail = '';
+      if (fs.existsSync(csvPath)) {
+        try {
+          const s = summarizeCollectedCsv(csvPath, row.id);
+          if (s) detail = ` — ${s.total}件 (${s.breakdown})`;
+        } catch (e) {
+          detail = ` (集計失敗: ${e.message})`;
+        }
+      }
+      const summary = `collected${detail} → output/${latest}${code !== 0 ? ` (exit ${code}, ログサーバ未起動の可能性)` : ''}`;
       resolve({ collect_summary: summary });
     });
     child.on('error', reject);

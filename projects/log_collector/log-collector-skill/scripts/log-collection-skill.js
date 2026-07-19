@@ -572,7 +572,9 @@ class LogCollectionSkill {
 
         const lines = output.split('\n').filter(line => line.trim());
         const results = lines.map((line, index) => {
-            // Remove file path prefix if present (e.g., "/var/log/app/application.log:")
+            // grep -r の出力は "/path/to/file.log:実際のログ行" 形式。先頭のファイルパスを抜き出す
+            const pathMatch = line.match(/^([^:]+):/);
+            const logPath = pathMatch ? pathMatch[1] : 'unknown';
             const cleanLine = line.replace(/^[^:]+:/, '');
 
             const timestampMatch = cleanLine.match(/(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/);
@@ -583,7 +585,7 @@ class LogCollectionSkill {
             return {
                 timestamp: timestampMatch ? timestampMatch[1] : new Date().toISOString().replace('T', ' ').substring(0, 19),
                 serverId,
-                logPath: 'unknown',
+                logPath,
                 content: line,
                 trackId: trackIdMatch ? trackIdMatch[1] : '',
                 programId: programIdMatch ? programIdMatch[1] : '',

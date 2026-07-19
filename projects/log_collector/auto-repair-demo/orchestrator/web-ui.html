@@ -47,6 +47,7 @@
     #log-panel { margin-top: 16px; background: #111827; color: #d1d5db; font-family: ui-monospace, monospace; font-size: 11px; padding: 10px; max-height: 200px; overflow-y: auto; border-radius: 4px; }
     #log-panel pre { margin: 0; white-space: pre-wrap; word-break: break-all; }
     .console-panel { margin-top: 12px; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+    .console-legend { background: #f3f4f6; border-bottom: 1px solid var(--border); padding: 6px 10px; font-size: 11px; color: #374151; }
     .console-tabs { display: flex; gap: 0; background: #1f2937; padding: 4px 4px 0 4px; overflow-x: auto; }
     .console-tabs button {
       background: #374151; color: #d1d5db; border: 0; border-radius: 4px 4px 0 0;
@@ -72,6 +73,7 @@
     .console-body .lvl-INFO { color: #a7f3d0; }
     .console-body .missing { color: #6b7280; font-style: italic; }
     .console-body .path { color: #6b7280; font-size: 10px; }
+    .console-body .trackid-hl { background: #7c3aed; color: #fff; padding: 0 2px; border-radius: 2px; font-weight: bold; }
     .row-actions { display: flex; gap: 4px; flex-direction: column; }
     .row-actions button { font-size: 11px; padding: 3px 6px; }
     .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
@@ -151,12 +153,16 @@
     <div id="log-panel"><pre id="log-text"></pre></div>
 
     <div class="console-panel">
+      <div class="console-legend">
+        🖥️ <b>client</b> = アプリ層 (demo-app) &nbsp;/&nbsp; 🧩 <b>service</b> = 機能サーバ層 &nbsp;—&nbsp;
+        同じ <b>TrackID</b> で串刺しできることを見るには client/service タブを見比べてください
+      </div>
       <div class="console-tabs">
-        <button data-source="webui" class="active">webui</button>
+        <button data-source="client" class="active">🖥️ client</button>
+        <button data-source="service">🧩 service</button>
         <button data-source="watchdog">watchdog</button>
-        <button data-source="robomart">robomart</button>
-        <button data-source="applog">app.log (raw)</button>
-        <button data-source="driver">driver</button>
+        <button data-source="webui">web-ui</button>
+        <button data-source="robomart">robomart (stdout)</button>
         <div class="console-controls">
           <span class="path" id="console-path"></span>
           <label><input type="checkbox" id="console-follow" checked /> follow tail</label>
@@ -435,23 +441,28 @@
     });
 
     // -- console pane (tail of server-side log files) --
-    let consoleSource = 'webui';
+    let consoleSource = 'client';
+    function highlightTrackId(line) {
+      return line.replace(/TrackID:([A-Z0-9]{3,10})/g, 'TrackID:<span class="trackid-hl">$1</span>');
+    }
     async function fetchConsole() {
       try {
         const r = await fetch(`/api/console?source=${encodeURIComponent(consoleSource)}&lines=120`);
         const j = await r.json();
         const body = document.getElementById('console-body');
         const follow = document.getElementById('console-follow').checked;
-        document.getElementById('console-path').textContent = j.path || '';
+        document.getElementById('console-path').textContent = j.label ? `${j.label}  (${j.path})` : (j.path || '');
         if (j.missing) {
-          body.innerHTML = `<span class="missing">(${esc(j.path)} does not exist yet)</span>`;
+          body.innerHTML = `<span class="missing">(${esc(j.path)} はまだ存在しません。バグを発火させるとログが出力されます)</span>`;
           return;
         }
         const lines = (j.lines || []).map(line => {
           const cls = /\sERROR\s|\bERROR:/.test(line) ? 'lvl-ERROR'
                     : /\sWARN\s|\bWARN:/.test(line) ? 'lvl-WARN'
                     : /\sINFO\s|\bINFO:/.test(line) ? 'lvl-INFO' : '';
-          return cls ? `<span class="${cls}">${esc(line)}</span>` : esc(line);
+          const escaped = esc(line);
+          const withTrackId = highlightTrackId(escaped);
+          return cls ? `<span class="${cls}">${withTrackId}</span>` : withTrackId;
         });
         body.innerHTML = lines.join('\n');
         if (follow) body.scrollTop = body.scrollHeight;
