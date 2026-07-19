@@ -1,29 +1,12 @@
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
 const { readRows, updateRow } = require('./excel-io');
-const { invokeClaude, extractJson, loadConfig } = require('./subagent-invoker');
+const { invokeClaude, extractJson } = require('./subagent-invoker');
 
 const XLSX = process.env.INCIDENT_XLSX
   || path.join(__dirname, '..', '..', 'examples', 'incident_management.xlsx');
 const DEMO_APP = path.join(__dirname, '..', '..', '..', 'demo-app');
 const REPO_ROOT = path.join(__dirname, '..', '..', '..', '..', '..');
-const OUTPUT_DIR = path.join(__dirname, '..', '..', 'output');
-const LOG_COLLECTOR = path.join(__dirname, '..', '..', '..', 'log-collector-skill', 'scripts', 'log-collection-skill.js');
-
-// demo-config.json の logCollector 設定から SSH 接続用の環境変数を組み立てる
-function logCollectorEnv() {
-  const cfg = loadConfig().logCollector;
-  if (!cfg) return {};
-  const env = {};
-  if (cfg.sshKeyPath) env.SSH_KEY_PATH = path.join(REPO_ROOT, cfg.sshKeyPath);
-  if (cfg.sshUser) env.SSH_USER = cfg.sshUser;
-  (cfg.servers || []).forEach((s, i) => {
-    env[`SSH_HOST_${i + 1}`] = s.host;
-    env[`SSH_PORT_${i + 1}`] = String(s.port);
-  });
-  return env;
-}
 
 const inFlight = new Set();
 let logSink = (msg) => console.log(`[driver ${new Date().toISOString()}] ${msg}`);
@@ -37,144 +20,6 @@ function rowTag(row) {
   if (row && row.id) parts.push(row.id);
   if (row && row.trackId) parts.push(`TrackID:${row.trackId}`);
   return parts.length ? `[${parts.join(' ')}]` : '[?]';
-}
-
-// RFC4180準拠の簡易CSVパーサ (log-collection-skill.js の escapeCsvValue と対になる)
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = '';
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') { field += '"'; i++; } else { inQuotes = false; }
-      } else {
-        field += c;
-      }
-    } else if (c === '"') {
-      inQuotes = true;
-    } else if (c === ',') {
-      row.push(field); field = '';
-    } else if (c === '\n') {
-      row.push(field); field = ''; rows.push(row); row = [];
-    } else if (c === '\r') {
-      // skip
-    } else {
-      field += c;
-    }
-  }
-  if (field !== '' || row.length) { row.push(field); rows.push(row); }
-  return rows;
-}
-
-// log_collector が出力したCSVから、対象タスクの行を server別に抽出する。
-// Content列は "logPath:実ログ行" 形式 (grep -r の出力そのまま) なので、
-// 先頭のファイルパスプレフィックスだけ取り除き、ログ本文はそのまま保持する。
-function extractCollectedEntries(csvPath, taskId) {
-  const text = fs.readFileSync(csvPath, 'utf8');
-  const rows = parseCsv(text);
-  if (rows.length < 2) return [];
-  const header = rows[0];
-  const idx = {
-    taskId: header.indexOf('Task ID'),
-    server: header.indexOf('Server'),
-    logPath: header.indexOf('Log Path'),
-    content: header.indexOf('Content'),
-  };
-  const entries = [];
-  for (const r of rows.slice(1)) {
-    if (r[idx.taskId] !== taskId) continue;
-    const server = r[idx.server] || '?';
-    const logPath = r[idx.logPath] || '';
-    const rawContent = r[idx.content] || '';
-    const line = rawContent.startsWith(`${logPath}:`) ? rawContent.slice(logPath.length + 1) : rawContent;
-    entries.push({ server, logPath, line });
-  }
-  return entries;
-}
-
-// 収集エントリを "[サーバ名 ログパス] <ログ本文そのまま>" 形式で連結する (H列・LLM入力の両方で使う)。
-// サーバ/取得元ファイル以外の加工 (件数集計・分類ラベル付け) はしない。
-function formatRawLogLines(entries) {
-  return entries.map(e => `[${e.server} ${e.logPath}] ${e.line}`).join('\n');
-}
-
-// log-collection-skill.js を子プロセスで実行し、終了コードを待つだけの薄いラッパー
-function spawnLogCollector() {
-  // log-collection-skill.js は OUTPUT_FOLDER を自動作成しない (ENOENT でExcel/CSV書き込みに
-  // 失敗し exit 1 で終わる)。デモリセット等でこのディレクトリ自体が消えることがあるため、
-  // 実行前に必ず存在を保証する。
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-  return new Promise((resolve, reject) => {
-    const child = spawn('node', [LOG_COLLECTOR], {
-      env: {
-        ...process.env,
-        INPUT_FOLDER: path.dirname(XLSX),
-        OUTPUT_FOLDER: OUTPUT_DIR,
-        FILTER_STATUS: 'インシデント検出',   // log_collector が処理する行のステータス
-        ...logCollectorEnv(),   // demo-config.json の SSH 接続情報 (server1-3)
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    let out = '';
-    child.stdout.on('data', d => { out += d.toString(); });
-    child.stderr.on('data', d => { out += d.toString(); });
-    child.on('close', code => resolve({ code, out }));
-    child.on('error', reject);
-  });
-}
-
-async function runLogCollector(row, opts = {}) {
-  log(`${rowTag(row)} running log_collector`);
-  if (opts.dryRun) return { collect_summary: '[dry-run] log_collector skipped' };
-
-  const { code } = await spawnLogCollector();
-
-  const files = fs.existsSync(OUTPUT_DIR) ? fs.readdirSync(OUTPUT_DIR).filter(f => f.endsWith('.xlsx')) : [];
-  const latest = files.sort().pop();
-  if (!latest) {
-    return { collect_summary: `no output (exit ${code}, ログサーバ未起動または対象TrackIDのログ0件)` };
-  }
-
-  const csvName = latest.replace(/\.xlsx$/, '.csv');
-  const csvPath = path.join(OUTPUT_DIR, csvName);
-  let entries = [];
-  if (fs.existsSync(csvPath)) {
-    try {
-      entries = extractCollectedEntries(csvPath, row.id);
-    } catch (e) {
-      log(`${rowTag(row)} CSV解析失敗: ${e.message}`);
-    }
-  }
-
-  if (entries.length === 0) {
-    return { collect_summary: `no matching entries in output/${latest}${code !== 0 ? ` (exit ${code})` : ''}` };
-  }
-
-  // H列 (収集ログ) には各サーバから取得した生ログをそのまま結合して格納する
-  const rawLogs = formatRawLogLines(entries);
-  const collect_summary = rawLogs;
-
-  // D列 (インシデント概要) は、収集した生ログを元にLLMで事象概要を再生成する
-  const updates = { collect_summary };
-  if (opts.skipSummary) {
-    return updates;
-  }
-  try {
-    const input = { id: row.id, trackId: row.trackId, raw_logs: rawLogs };
-    const { stdout } = await invokeClaude('log-summarizer', JSON.stringify(input));
-    const parsed = extractJson(stdout);
-    if (parsed && parsed.summary) {
-      updates.summary = parsed.summary;
-    } else {
-      log(`${rowTag(row)} log-summarizer: JSON抽出失敗、概要(D列)は既存値を維持`);
-    }
-  } catch (e) {
-    log(`${rowTag(row)} log-summarizer error: ${e.message} (概要(D列)は既存値を維持)`);
-  }
-  return updates;
 }
 
 async function runIncidentAnalyzer(row, opts = {}) {
@@ -235,14 +80,12 @@ async function runPrPublisher(row, opts = {}) {
   return { pr_url };
 }
 
-// 状態機械: watchdog は起票時に最初から「インシデント検出」で書き込む (=起票が確認待ち)。
-//   インシデント検出 ─[ログ収集+概要記載]→ ログ収集済み ★手動ゲート
-//   ログ収集済み ─[調査]→ 解析済み ─[改修案]→ 要承認 ★手動ゲート
+// 状態機械: watchdog がログ収集(SSH)+概要生成(LLM)まで終えた後に初めて
+//   「ログ収集済み」として起票する (=起票が確認待ち、手動ゲート①)。
+//   ログ収集済み ─[調査]→ 解析済み ─[改修案]→ 要承認 ★手動ゲート②
 //   要承認 ─(承認者+PR作成待ちを人が記入)→ PR作成待ち ─[PR発行]→ 対応完了
-// 「▶ 調査＆改修案」ボタンで インシデント検出 → ログ収集済み まで実行 (log_collector, LLM概要生成含む)。
-// 収集ログ(H列)・概要(D列)を見て、続けるかどうかは人が「▶ 続きを実行」で判断する。
+// 「▶ 調査＆改修案」ボタンで ログ収集済み → 要承認 まで実行 (analyzer+planner)。
 const HANDLERS = {
-  'インシデント検出': { fn: runLogCollector,       next: 'ログ収集済み' },
   'ログ収集済み':     { fn: runIncidentAnalyzer,   next: '解析済み' },
   '解析済み':         { fn: runRepairPlanner,      next: '要承認' },
   'PR作成待ち':       { fn: runPrPublisher,        next: '対応完了' },
@@ -250,10 +93,7 @@ const HANDLERS = {
 
 // 手動ゲート状態: この状態に「到達」したら advanceRowToGate は停止し、
 // 次に進めるには人が改めてボタンを押す (=/api/advance を再度呼ぶ) 必要がある。
-// 「ログ収集済み」も手動ゲート化: 検出→ログ収集→概要記載(D列上書き)までを
-// 一連の動作として自動実行し、そこで一旦停止する。収集ログ(H列)と概要(D列)を
-// 見て一次解析・改修案作成に進めるかどうかは人が判断する。
-const STOP_STATES = new Set(['ログ収集済み', '要承認', '対応完了']);
+const STOP_STATES = new Set(['要承認', '対応完了']);
 
 async function processRow(row, opts = {}) {
   const handler = HANDLERS[row.status];
@@ -282,7 +122,7 @@ async function processRowById(rowId, opts = {}) {
 }
 
 // 指定行を「次の手動ゲート」まで連続的に進める
-// インシデント検出 → ログ収集済み → 解析済み → 要承認 (log収集+調査+改修案を一気に実行し要承認で停止)
+// ログ収集済み → 解析済み → 要承認 (調査+改修案を一気に実行し要承認で停止)
 // PR作成待ち → 対応完了 (PR発行後に終端)
 async function advanceRowToGate(rowId, opts = {}) {
   const stages = [];
