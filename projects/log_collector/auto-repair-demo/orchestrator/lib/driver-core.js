@@ -236,9 +236,11 @@ async function runPrPublisher(row, opts = {}) {
 }
 
 // 状態機械: watchdog は起票時に最初から「インシデント検出」で書き込む (=起票が確認待ち)。
-//   インシデント検出 ─[ログ収集]→ ログ収集済み ─[調査]→ 解析済み ─[改修案]→ 要承認 ★手動ゲート
+//   インシデント検出 ─[ログ収集+概要記載]→ ログ収集済み ★手動ゲート
+//   ログ収集済み ─[調査]→ 解析済み ─[改修案]→ 要承認 ★手動ゲート
 //   要承認 ─(承認者+PR作成待ちを人が記入)→ PR作成待ち ─[PR発行]→ 対応完了
-// 「▶ 調査＆改修案」ボタンで インシデント検出 → 要承認 まで一気に実行 (log_collector+analyzer+planner)。
+// 「▶ 調査＆改修案」ボタンで インシデント検出 → ログ収集済み まで実行 (log_collector, LLM概要生成含む)。
+// 収集ログ(H列)・概要(D列)を見て、続けるかどうかは人が「▶ 続きを実行」で判断する。
 const HANDLERS = {
   'インシデント検出': { fn: runLogCollector,       next: 'ログ収集済み' },
   'ログ収集済み':     { fn: runIncidentAnalyzer,   next: '解析済み' },
@@ -248,7 +250,10 @@ const HANDLERS = {
 
 // 手動ゲート状態: この状態に「到達」したら advanceRowToGate は停止し、
 // 次に進めるには人が改めてボタンを押す (=/api/advance を再度呼ぶ) 必要がある。
-const STOP_STATES = new Set(['要承認', '対応完了']);
+// 「ログ収集済み」も手動ゲート化: 検出→ログ収集→概要記載(D列上書き)までを
+// 一連の動作として自動実行し、そこで一旦停止する。収集ログ(H列)と概要(D列)を
+// 見て一次解析・改修案作成に進めるかどうかは人が判断する。
+const STOP_STATES = new Set(['ログ収集済み', '要承認', '対応完了']);
 
 async function processRow(row, opts = {}) {
   const handler = HANDLERS[row.status];

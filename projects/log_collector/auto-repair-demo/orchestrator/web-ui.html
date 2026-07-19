@@ -107,8 +107,9 @@
       <br>
       <b>操作フロー</b>:
       バグ発火で <span style="background:#fed7aa;padding:1px 4px;">インシデント検出</span> として自動起票。
-      ①<b>▶ 調査＆改修案</b> で ログ収集→解析→改修案 を実行し <span style="background:#fecaca;padding:1px 4px;">要承認</span> まで (数分)。
-      ②承認者を入力しステータスを <span style="background:#bbf7d0;padding:1px 4px;">PR作成待ち</span> にすると <b>自動で PR 発行</b>。
+      ①<b>▶ 調査＆改修案</b> で ログ収集→概要記載(D列・H列) を実行し <span style="background:#fef3c7;padding:1px 4px;">ログ収集済み</span> で一旦停止。収集ログ・概要を見て続行を判断。
+      ②<b>▶ 続きを実行</b> で 解析→改修案 を実行し <span style="background:#fecaca;padding:1px 4px;">要承認</span> まで。
+      ③承認者を入力しステータスを <span style="background:#bbf7d0;padding:1px 4px;">PR作成待ち</span> にすると <b>自動で PR 発行</b>。
       列幅はヘッダ右端をドラッグ / テーブルは横スクロール可。
     </div>
     <div class="table-wrap">
@@ -221,7 +222,7 @@
     function actionsCell(row) {
       if (row.status === 'インシデント検出') {
         return `<div class="row-actions">
-          <button class="ok advance-btn" data-id="${esc(row.id)}" title="ログ収集 → 一次解析 → 改修案作成 を実行し 要承認 まで進める (数分)">▶ 調査＆改修案</button>
+          <button class="ok advance-btn" data-id="${esc(row.id)}" title="ログ収集(H列)→概要記載(D列) を実行し ログ収集済み で停止。内容を確認してから続きを判断">▶ 調査＆改修案</button>
         </div>`;
       }
       if (row.status === 'ログ収集済み' || row.status === '解析済み') {
