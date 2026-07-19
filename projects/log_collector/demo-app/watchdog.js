@@ -146,10 +146,11 @@ function extractCollectedEntries(csvPath, taskId) {
   return entries;
 }
 
-// 収集エントリを "[サーバ名 ログパス] <ログ本文そのまま>" 形式で連結する (H列・LLM入力の両方で使う)。
-// サーバ/取得元ファイル以外の加工 (件数集計・分類ラベル付け) はしない。
+// 収集エントリを "[ログファイル名 (サーバ)] <ログ本文そのまま>" 形式で連結する (H列・LLM入力の両方で使う)。
+// 現状は全ファイルが同一サーバ(server1)にbind mountされているため、サーバIDだけでは
+// 取得元を区別できない。ログファイル名(app.log/service.log)を前面に出して差別化する。
 function formatRawLogLines(entries) {
-  return entries.map(e => `[${e.server} ${e.logPath}] ${e.line}`).join('\n');
+  return entries.map(e => `[${path.basename(e.logPath)} (${e.server})] ${e.line}`).join('\n');
 }
 
 // log-collection-skill.js はExcel入力ファイルから対象行を読む設計のため、
