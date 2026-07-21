@@ -1,7 +1,6 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const { isEnabled } = require('../lib/bug-switch');
 const { logServiceCall, logServiceError } = require('../middleware/logger');
 
 const router = express.Router();
@@ -27,12 +26,7 @@ router.get('/:sku', (req, res, next) => {
 
     logServiceCall(req, 'inventory-service', { action: 'get_related_products', sku: robot.sku });
 
-    let relatedList;
-    if (robot.stock === 0 && isEnabled('PRODUCT_STOCK_ZERO_NPE')) {
-      relatedList = robot.out_of_stock_alternatives;
-    } else {
-      relatedList = robot.related || [];
-    }
+    const relatedList = robot.related || [];
 
     const related = relatedList.map(sku => {
       const r = robots.find(x => x.sku === sku);
