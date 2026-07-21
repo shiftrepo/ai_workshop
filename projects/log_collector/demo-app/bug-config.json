@@ -1,7 +1,7 @@
 {
   "bugs": {
     "PRODUCT_STOCK_ZERO_NPE": {
-      "enabled": true,
+      "enabled": false,
       "description": "GET /api/robots/:sku で stock=0 の商品を見ると related_products を undefined で map しようとして TypeError",
       "affects": "src/routes/products.js#getProduct",
       "trigger": "SKU RBT-DOG-02 (stock=0) の詳細ページを開く",
