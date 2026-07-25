@@ -112,6 +112,16 @@ cp .env.example .env
 一度だけ行う設定であり、本プロジェクトのスクリプトの範囲外です(詳細は
 `scripts/docker-pull.sh`内のコメントを参照)。
 
+## 学習者向け解説資料
+
+インフォグラフ(一枚絵)作成の元原稿として、以下のドキュメントを用意しています。
+
+| ドキュメント | 内容 |
+|---|---|
+| [docs/01_environment_overview.md](docs/01_environment_overview.md) | この環境の全体構成、client/server分離とTrackIDによるログ相関の説明 |
+| [docs/02_building_log_collector_with_ai.md](docs/02_building_log_collector_with_ai.md) | AIエージェントでログ収集ツールを作る際のポイントとプロンプト例 |
+| [docs/03_container_basics.md](docs/03_container_basics.md) | コンテナ(Docker)の説明と仮想マシンとの違い |
+
 ## 変更していないもの
 
 このプロジェクトは `projects/log_collector/` 配下のいずれのファイルも変更していません
