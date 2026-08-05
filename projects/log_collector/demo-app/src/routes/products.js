@@ -27,11 +27,9 @@ router.get('/:sku', (req, res, next) => {
 
     logServiceCall(req, 'inventory-service', { action: 'get_related_products', sku: robot.sku });
 
-    let relatedList;
+    let relatedList = robot.related || [];
     if (robot.stock === 0 && isEnabled('PRODUCT_STOCK_ZERO_NPE')) {
-      relatedList = robot.out_of_stock_alternatives;
-    } else {
-      relatedList = robot.related || [];
+      relatedList = robot.out_of_stock_alternatives || relatedList;
     }
 
     const related = relatedList.map(sku => {
