@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_base.css">
+<style>
+  .sheet { background: linear-gradient(160deg, #0f172a 0%, #1e3a5f 55%, #24405f 100%); }
+  .head { border-bottom-color: #8ecae6; }
+  .head .t { color: #fff; font-size: 32px; }
+  .head .s { color: #a9c3d6; }
+  .head .tag { background: #8ecae6; color: #0f172a; font-weight: 700; }
+
+  .body { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding-top: 12px; }
+  .col { display: flex; flex-direction: column; gap: 11px; min-height: 0; }
+
+  .panel { background: rgba(255,255,255,.96); border-radius: 10px; padding: 11px 15px; }
+  .panel .pt { font-size: 15px; font-weight: 700; color: #1e3a5f; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 9px; }
+
+  /* 左上: 課題 */
+  .prob { display: flex; flex-direction: column; gap: 5px; }
+  .prob .row { display: flex; align-items: center; gap: 9px; font-size: 13.5px; }
+  .prob .num {
+    width: 21px; height: 21px; flex: none; border-radius: 50%;
+    background: #b91c1c; color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .prob .row.hl { background: #fef2f2; border-radius: 5px; padding: 3px 6px; margin: -3px -6px; }
+
+  /* 左下: TrackID の流れ */
+  .flow { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .flow .node {
+    width: 100%; border-radius: 7px; padding: 7px 12px; font-size: 13px;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .flow .node .nn { font-weight: 700; font-size: 14.5px; }
+  .flow .node.b { background: #eff6ff; border: 1.5px solid #2563eb; }
+  .flow .node.p { background: #fdf4ff; border: 1.5px solid #a21caf; }
+  .flow .node.g { background: #f8fafc; border: 1.5px dashed #94a3b8; }
+  .flow .ar { font-size: 15px; color: #2563eb; font-weight: 700; line-height: 1.1; }
+  .flow .ar span { font-size: 11px; color: #475569; font-weight: 400; }
+  .tidbox {
+    background: #fef3c7; border: 1.5px solid #f59e0b; border-radius: 6px;
+    padding: 5px 10px; font-size: 12.5px; line-height: 1.45; text-align: center; width: 100%;
+  }
+  .tidbox code { font-family: Consolas, monospace; font-weight: 700; color: #92400e; }
+
+  /* 右上: 4段階 */
+  .steps { display: flex; flex-direction: column; gap: 6px; }
+  .steps .st { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; }
+  .steps .sn {
+    width: 20px; height: 20px; flex: none; border-radius: 4px; background: #2563eb;
+    color: #fff; font-size: 11.5px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .steps .sl { font-weight: 700; color: #1e3a5f; width: 52px; flex: none; }
+  .steps .sd { color: #334155; }
+  .steps .hard { color: #b45309; font-weight: 700; }
+
+  /* 右中: Before/After */
+  .ba { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: stretch; }
+  .ba .side { border-radius: 7px; padding: 9px 11px; font-size: 12.5px; }
+  .ba .before { background: #fef2f2; border: 1.5px solid #fca5a5; }
+  .ba .after  { background: #ecfdf5; border: 1.5px solid #6ee7b7; }
+  .ba .sh { font-size: 12px; font-weight: 700; margin-bottom: 5px; letter-spacing: .5px; }
+  .ba .before .sh { color: #b91c1c; }
+  .ba .after .sh { color: #047857; }
+  .ba ul { list-style: none; display: flex; flex-direction: column; gap: 1px; }
+  .ba li { padding-left: 11px; position: relative; line-height: 1.4; }
+  .ba li::before { content: "▪"; position: absolute; left: 0; color: #94a3b8; }
+  .ba .mid { display: flex; align-items: center; font-size: 22px; color: #2563eb; font-weight: 700; }
+
+  /* 右下: 展望 */
+  .outlook { display: flex; align-items: center; gap: 5px; font-size: 11.5px; }
+  .outlook .oc {
+    flex: 1; text-align: center; border-radius: 5px; padding: 7px 3px;
+    background: #eff6ff; border: 1.5px solid #93c5fd; color: #1e3a5f; line-height: 1.35;
+  }
+  .outlook .oc.gate { background: #fef3c7; border-color: #f59e0b; font-weight: 700; }
+  .outlook .oc .who { display: block; font-size: 10px; color: #64748b; margin-top: 2px; }
+  .outlook .oc.gate .who { color: #92400e; }
+  .outlook .oa { color: #2563eb; font-weight: 700; font-size: 13px; }
+
+  .foot { border-top-color: #3f5875; color: #a9c3d6; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="head">
+    <div class="t">ログからのインシデント検出</div>
+    <div class="s">複数サーバのログを TrackID で1件に束ねる</div>
+    <div class="tag">onprem_log_training</div>
+  </div>
+
+  <div class="body">
+
+    <!-- ================= 左列 ================= -->
+    <div class="col">
+
+      <div class="panel" style="flex: none;">
+        <div class="pt">なぜ障害調査に時間がかかるのか</div>
+        <div class="prob">
+          <div class="row"><div class="num">1</div><div>「500エラーが出た」— どのサーバの問題かまだ分からない</div></div>
+          <div class="row"><div class="num">2</div><div>アプリサーバのログを見る — エラーは見えるが原因は上流</div></div>
+          <div class="row hl"><div class="num">3</div><div>機能サーバに SSH して grep — <span class="bad">知っている人しか動けない</span></div></div>
+          <div class="row hl"><div class="num">4</div><div>2つのログを時刻で目視突き合わせ — <span class="bad">推測が混じる</span></div></div>
+          <div class="row"><div class="num">5</div><div>チケットに手で転記</div></div>
+        </div>
+        <div style="margin-top:9px; background:#fef2f2; border-left:4px solid #b91c1c; padding:7px 10px; font-size:12.5px; line-height:1.5;">
+          構造的な問題は <b>3 の属人化</b> と <b>4 の推測による突き合わせ</b>。<br>
+          時刻の近さは同一処理の証明にならない。
+        </div>
+      </div>
+
+      <div class="panel" style="flex: 1;">
+        <div class="pt">打ち手 — 相関キー TrackID を通す</div>
+        <div class="flow">
+          <div class="node g"><div class="nn">ブラウザ操作</div><div style="color:#475569">在庫切れ商品の詳細ページを開く</div></div>
+          <div class="ar">▼<br><span>TrackID を発行</span></div>
+          <div class="node b">
+            <div class="nn" style="color:#1d4ed8">client</div>
+            <div style="color:#334155">アプリサーバ層 &nbsp;→&nbsp; <code style="font-family:Consolas,monospace">app.log</code> に記録</div>
+          </div>
+          <div class="ar">▼<br><span>HTTPヘッダ X-Track-Id: ABC1234</span></div>
+          <div class="node p">
+            <div class="nn" style="color:#a21caf">server</div>
+            <div style="color:#334155">機能サーバ層 &nbsp;→&nbsp; <code style="font-family:Consolas,monospace">service.log</code> に記録</div>
+          </div>
+          <div class="ar" style="margin-top:2px">▼</div>
+          <div class="tidbox">
+            2つのログに <b>同じ TrackID</b> が残る<br>
+            <code>TrackID:([A-Z0-9]{7})</code> で機械的に抽出できる
+          </div>
+        </div>
+        <div style="margin-top:8px; background:#ecfdf5; border-left:4px solid #047857; padding:6px 10px; font-size:12.5px;">
+          突き合わせが <b>推測</b> から <b class="good">完全一致検索</b> に変わる = 自動化できる。
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= 右列 ================= -->
+    <div class="col">
+
+      <div class="panel" style="flex:none;">
+        <div class="pt">収集ツールは4段階に分けて作る</div>
+        <div class="steps">
+          <div class="st"><div class="sn">1</div><div class="sl">検知</div><div class="sd">app.log の ERROR 行を見つける</div></div>
+          <div class="st"><div class="sn">2</div><div class="sl">収集</div><div class="sd">SSH で service.log を TrackID 検索 <span class="hard">← 接続の壁</span></div></div>
+          <div class="st"><div class="sn">3</div><div class="sl">関連付け</div><div class="sd">TrackID をキーに1件へ集約 <span class="hard">← 設計の壁</span></div></div>
+          <div class="st"><div class="sn">4</div><div class="sl">出力</div><div class="sd">一覧・レポート・通知として見せる</div></div>
+        </div>
+        <div style="margin-top:9px; background:#eff6ff; border-left:4px solid #2563eb; padding:7px 10px; font-size:12.5px; line-height:1.5;">
+          <b>①②を先に動かし、通ってから③④を足す。</b><br>
+          全部を一度に指示すると AI エージェントは的外れな実装に流れる。
+        </div>
+      </div>
+
+      <div class="panel" style="flex:none;">
+        <div class="pt">運用として何が変わるか</div>
+        <div class="ba">
+          <div class="side before">
+            <div class="sh">BEFORE</div>
+            <ul>
+              <li>時刻を目視、推測で突き合わせ</li>
+              <li>SSH を知る人だけが調査できる</li>
+              <li>手でコピペ転記</li>
+              <li>人は<b>探す作業</b>に時間を使う</li>
+            </ul>
+          </div>
+          <div class="mid">▶</div>
+          <div class="side after">
+            <div class="sh">AFTER</div>
+            <ul>
+              <li>TrackID で完全一致、機械的</li>
+              <li>ガイドを読ませれば誰でも</li>
+              <li>1件のインシデントに自動整形</li>
+              <li>人は<b>判断</b>に集中する</li>
+            </ul>
+          </div>
+        </div>
+        <div style="margin-top:9px; background:#f8fafc; border-left:4px solid #64748b; padding:7px 10px; font-size:12.5px; line-height:1.5;">
+          本質は時間短縮ではなく <b>「探す作業」を人の仕事から外したこと</b>。<br>
+          探すのは機械が得意、判断は人が得意 — 分担を正した。
+        </div>
+      </div>
+
+      <div class="panel" style="flex:1;">
+        <div class="pt">この先の展望 — 改修 PR 発行まで繋ぐ</div>
+        <div class="outlook">
+          <div class="oc">ログ収集済み<span class="who">自動</span></div>
+          <div class="oa">▶</div>
+          <div class="oc">解析済み<span class="who">AI 一次解析</span></div>
+          <div class="oa">▶</div>
+          <div class="oc">要承認<span class="who">AI 改修案</span></div>
+          <div class="oa">▶</div>
+          <div class="oc gate">PR作成待ち<span class="who">人が承認</span></div>
+          <div class="oa">▶</div>
+          <div class="oc">対応完了<span class="who">PR 自動発行</span></div>
+        </div>
+        <div style="margin-top:9px; background:#fef3c7; border-left:4px solid #b45309; padding:7px 10px; font-size:12.5px; line-height:1.5;">
+          <b>承認ゲートは人が持つ。</b> エージェントはブランチと PR まで —
+          <code style="font-family:Consolas,monospace">main</code> へは直接反映しない。
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="foot">
+    <div>研修環境: client(アプリ層 / ログはホストへ) + server(機能層 / SSH経由のみ)</div>
+    <div>不具合2件を常設 — 在庫切れページ 500 / 請求書払いの注文確定 500</div>
+    <div class="p">projects/onprem_log_training</div>
+  </div>
+
+</div>
+</body>
+</html>

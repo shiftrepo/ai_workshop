@@ -128,6 +128,42 @@ cp .env.example .env
 | [docs/02_building_log_collector_with_ai.md](docs/02_building_log_collector_with_ai.md) | AIエージェントでログ収集ツールを作る際のポイントとプロンプト例 |
 | [docs/03_container_basics.md](docs/03_container_basics.md) | コンテナ(Docker)の説明と仮想マシンとの違い |
 
+## プレゼン資料 (マネジメント向け)
+
+デモの流れをベースにした説明資料です。Marp形式のMarkdownなので、GitHub上ではそのまま
+読めますし、`marp-cli` があればスライド(PDF/HTML/PPTX)に変換できます。
+
+| 資料 | 内容 |
+|---|---|
+| [docs/04_incident_detection_presentation.md](docs/04_incident_detection_presentation.md) | 意思決定層向けのスライド原稿。課題→TrackID相関→デモの流れ→導入ステップ→自動改修への展望 |
+
+```bash
+# スライドに変換する場合 (marp-cli が使える環境で)
+npx @marp-team/marp-cli docs/04_incident_detection_presentation.md -o slides.html
+npx @marp-team/marp-cli docs/04_incident_detection_presentation.md --pdf
+```
+
+### インフォグラフ
+
+`docs/infographics/` に画像(2752×1536)を置いています。1枚目が全体を1枚に収めた概要図、
+2枚目以降が詳細です。
+
+| 画像 | 内容 |
+|---|---|
+| [00_overview.png](docs/infographics/00_overview.png) | **一枚絵** — 課題・TrackID相関・4段階・Before/After・展望を1枚に集約 |
+| [01_environment.png](docs/infographics/01_environment.png) | 研修環境の構成。client/serverの非対称性と常設された2つの不具合 |
+| [02_demo_flow.png](docs/infographics/02_demo_flow.png) | デモの流れ。バグ発火から1件のインシデントに束ねるまでの4ステップ |
+| [03_prompt_design.png](docs/infographics/03_prompt_design.png) | AIエージェントへの指示の型。渡すべき6項目とプロンプト例 |
+| [04_auto_repair_outlook.png](docs/infographics/04_auto_repair_outlook.png) | 自動改修への展望。状態遷移・役割分担・ガードレール |
+
+画像の元データは `docs/infographics_src/` のHTMLです。修正して再生成できます。
+
+```bash
+cd docs/infographics_src
+./check-fit.sh     # 1376x768に収まっているか検査 (はみ出しはPNG上で黙って欠落するため)
+./render.sh        # ヘッドレスChromeで docs/infographics/*.png を再生成
+```
+
 ## 変更していないもの
 
 このプロジェクトは `projects/log_collector/` 配下のいずれのファイルも変更していません

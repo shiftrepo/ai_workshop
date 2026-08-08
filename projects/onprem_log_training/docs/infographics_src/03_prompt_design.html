@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_base.css">
+<style>
+  .body { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1.05fr; gap: 14px; padding-top: 12px; }
+  .col { display: flex; flex-direction: column; gap: 11px; min-height: 0; }
+  .card { display: flex; flex-direction: column; min-height: 0; }
+
+  /* NG / OK 比較 */
+  .cmp { display: flex; flex-direction: column; gap: 8px; }
+  .cmp .b { border-radius: 7px; padding: 9px 12px; }
+  .cmp .ng { background: #fef2f2; border: 1.5px solid #fca5a5; }
+  .cmp .ok { background: #ecfdf5; border: 1.5px solid #6ee7b7; }
+  .cmp .lbl { font-size: 11.5px; font-weight: 700; letter-spacing: .5px; margin-bottom: 4px; }
+  .cmp .ng .lbl { color: #b91c1c; }
+  .cmp .ok .lbl { color: #047857; }
+  .cmp .q {
+    font-family: Consolas, monospace; font-size: 12px; background: rgba(255,255,255,.75);
+    border-radius: 4px; padding: 6px 9px; color: #0f172a; line-height: 1.5;
+  }
+  .cmp .why { font-size: 11.5px; margin-top: 5px; line-height: 1.45; }
+  .cmp .ng .why { color: #7f1d1d; }
+  .cmp .ok .why { color: #064e3b; }
+
+  /* チェックリスト */
+  .cl { display: flex; flex-direction: column; gap: 5px; }
+  .cl .it { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; line-height: 1.45; }
+  .cl .bx {
+    width: 15px; height: 15px; flex: none; border: 1.5px solid #2563eb; border-radius: 3px;
+    background: #eff6ff; color: #1d4ed8; font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .cl .k2 { font-weight: 700; color: #1e3a5f; }
+  .cl .v2 { color: #334155; }
+
+  /* プロンプト例 */
+  .pex {
+    background: #0f172a; border-radius: 7px; padding: 11px 13px; flex: 1; min-height: 0;
+    font-family: Consolas, monospace; font-size: 11.5px; line-height: 1.45;
+    color: #e2e8f0; white-space: pre-wrap;
+  }
+  .pex .c1 { color: #7f8ea3; }
+  .pex .hl { color: #fbbf24; font-weight: 700; }
+  .pex .g1 { color: #4ade80; }
+  .pex .b1 { color: #93c5fd; }
+
+  .note { font-size: 12px; line-height: 1.5; padding: 8px 11px; border-radius: 5px; }
+  .note.y { background: #fef3c7; border-left: 4px solid #b45309; color: #78350f; }
+  .note.b { background: #eff6ff; border-left: 4px solid #2563eb; color: #1e3a5f; }
+
+  /* 段階的依頼 */
+  .stage { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+  .stage .s1 {
+    border-radius: 6px; padding: 7px 8px; font-size: 11.5px; text-align: center;
+    background: #eff6ff; border: 1.5px solid #93c5fd; color: #1e3a5f; line-height: 1.35;
+  }
+  .stage .s1 b { display: block; font-size: 12.5px; margin-bottom: 2px; }
+  .stage .s1.first { background: #dbeafe; border-color: #2563eb; }
+  .stage .s1.later { background: #f8fafc; border-color: #cbd5e1; color: #64748b; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="head">
+    <div class="t">AI エージェントへの指示の型</div>
+    <div class="s">研修の本当の成果物は、ツールではなく「この型を書ける担当者」</div>
+    <div class="tag">docs/02 が原典</div>
+  </div>
+
+  <div class="body">
+
+    <!-- 左列 -->
+    <div class="col">
+
+      <div class="card" style="flex:none">
+        <div class="ct">なぜ「作って」だけでは通らないか</div>
+        <div class="cmp">
+          <div class="b ng">
+            <div class="lbl">✕ 通らない指示</div>
+            <div class="q">ログ収集ツールを作って</div>
+            <div class="why">
+              エージェントは<b>この環境固有の前提を知らない</b> —
+              どこのログを見るか、何をキーに結びつけるか、SSH でどこへ繋ぐか。<br>
+              結果、的外れな実装になるか、毎回同じ質問をされて手戻りする。
+            </div>
+          </div>
+          <div class="b ok">
+            <div class="lbl">✓ 通る指示</div>
+            <div class="q">目的 / ログの場所 / 相関キー /<br>検知条件 / スコープ / 出力形式<br>を最初にまとめて渡す</div>
+            <div class="why">
+              前提を先に渡せば、エージェントは<b>一度で正しい方向へ進める</b>。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="flex:1">
+        <div class="ct">渡すべき6項目 (チェックリスト)</div>
+        <div class="cl">
+          <div class="it"><div class="bx">✓</div><div><span class="k2">目的</span> — <span class="v2">client/server 2つのログを TrackID で紐づけ、1件のインシデントにする</span></div></div>
+          <div class="it"><div class="bx">✓</div><div><span class="k2">ログの場所</span> — <span class="v2">client/logs/app.log (ローカル) と server 側 (SSH、AGENT_SSH_GUIDE.md を参照させる)</span></div></div>
+          <div class="it"><div class="bx">✓</div><div><span class="k2">相関キー</span> — <span class="v2">TrackID: + 英数字7文字 / TrackID:([A-Z0-9]{7})</span></div></div>
+          <div class="it"><div class="bx">✓</div><div><span class="k2">検知条件</span> — <span class="v2">どの行を異常とみなすか (例: ERROR を含む行)</span></div></div>
+          <div class="it"><div class="bx">✓</div><div><span class="k2">スコープ</span> — <span class="v2">今回作るのは①②まで。段階的に依頼する</span></div></div>
+          <div class="it"><div class="bx">✓</div><div><span class="k2">出力形式</span> — <span class="v2">コンソール / ファイル / JSON</span></div></div>
+        </div>
+        <div class="grow" style="flex:1"></div>
+        <div class="note b">
+          実行環境の制約も添える —
+          SSH は<b>鍵認証でパスワードなし</b>、対話ログインではなく<b>コマンド直接実行で十分</b>。
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右列 -->
+    <div class="col">
+
+      <div class="card" style="flex:1">
+        <div class="ct">プロンプト例 (そのまま使える)</div>
+        <div class="pex"><span class="c1"># 目的</span>
+projects/onprem_log_training/ 配下に、client/server
+2つのログを <span class="hl">TrackID</span> で関連付けるログ収集ツールを
+作りたい。
+
+<span class="c1"># ログの場所</span>
+- client側: <span class="b1">client/logs/app.log</span> (ローカルファイル)
+- server側: <span class="b1">AGENT_SSH_GUIDE.md</span> に書かれている
+  SSH接続情報を使って取得すること
+
+<span class="c1"># 相関キー</span>
+両ログに共通で出現する <span class="hl">TrackID:XXXXXXX</span> (英数字7文字)
+
+<span class="c1"># スコープ (今回はここまで)</span>
+<span class="g1">1.</span> client側ログから ERROR 行を検知する
+<span class="g1">2.</span> そのTrackIDでserver側ログを検索する
+<span class="g1">3.</span> 両方のログをTrackID単位でまとめて表示する
+
+<span class="c1"># 今回は不要</span>
+常時監視の仕組み。1回実行して結果が出れば十分。</div>
+      </div>
+
+      <div class="card" style="flex:none">
+        <div class="ct">段階的に依頼する</div>
+        <div class="stage">
+          <div class="s1 first"><b>① 検知</b>まず ここだけ</div>
+          <div class="s1 first"><b>② 収集</b>通ったら 次へ</div>
+          <div class="s1 later"><b>③ 関連付け</b>後から 足す</div>
+          <div class="s1 later"><b>④ 出力</b>最後に 整える</div>
+        </div>
+        <div class="note y" style="margin-top:8px">
+          <b>①②を先に動かし、通ってから③④を足す。</b>
+          最初から全部を一度に作らせようとすると、AI エージェントは的外れな実装に流れやすい。<br>
+          <b>常時監視 (常駐化) は最初のスコープに入れない</b> —
+          Node.js で常駐させるか <span style="font-family:Consolas,monospace">/loop</span> で再実行させるかは、
+          動いた後に受講者が選ぶ。
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="foot">
+    <div>この型はログ収集に限らず流用できる — 目的・入力の場所・キー・スコープ・出力を先に固定する</div>
+    <div class="p">docs/02_building_log_collector_with_ai.md</div>
+  </div>
+
+</div>
+</body>
+</html>
