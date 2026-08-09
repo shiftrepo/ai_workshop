@@ -128,6 +128,180 @@ cp .env.example .env
 | [docs/02_building_log_collector_with_ai.md](docs/02_building_log_collector_with_ai.md) | AIエージェントでログ収集ツールを作る際のポイントとプロンプト例 |
 | [docs/03_container_basics.md](docs/03_container_basics.md) | コンテナ(Docker)の説明と仮想マシンとの違い |
 
+## プレゼン資料 (マネジメント向け)
+
+デモの流れをベースにした説明資料です。Marp形式のMarkdownなので、GitHub上ではそのまま
+読めますし、`marp-cli` があればスライド(PDF/HTML/PPTX)に変換できます。
+
+| 資料 | 内容 |
+|---|---|
+| [docs/04_incident_detection_presentation.md](docs/04_incident_detection_presentation.md) | 意思決定層向けのスライド原稿 (全24枚)。課題→TrackID相関→デモの流れ→導入ステップ→自動改修への展望 |
+| [docs/04_incident_detection_presentation.pdf](docs/04_incident_detection_presentation.pdf) | 上記をスライド化したPDF (960×540 / 16:9)。配布・投影用 |
+
+PDFは生成済みのものをコミットしていますが、Markdownを修正した場合は以下で再生成できます。
+
+```bash
+cd docs
+# WindowsでChromeのパスを明示する場合 (Linux/macOSでは通常不要)
+export CHROME_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe"
+
+npx --yes @marp-team/marp-cli 04_incident_detection_presentation.md \
+  --pdf --allow-local-files --no-stdin -o 04_incident_detection_presentation.pdf
+
+# HTML / PPTX が必要な場合
+npx --yes @marp-team/marp-cli 04_incident_detection_presentation.md --no-stdin -o slides.html
+npx --yes @marp-team/marp-cli 04_incident_detection_presentation.md --pptx --no-stdin -o slides.pptx
+```
+
+各オプションの意味と、付けないと何が起きるかは
+[資料化のノウハウ](#資料化のノウハウ)にまとめています。
+
+### インフォグラフ
+
+`docs/infographics/` に画像(2752×1536)を置いています。1枚目が全体を1枚に収めた概要図、
+2枚目以降が詳細です。
+
+| 画像 | 内容 |
+|---|---|
+| [00_overview.png](docs/infographics/00_overview.png) | **一枚絵** — 課題・TrackID相関・4段階・Before/After・展望を1枚に集約 |
+| [01_environment.png](docs/infographics/01_environment.png) | 研修環境の構成。client/serverの非対称性と常設された2つの不具合 |
+| [02_demo_flow.png](docs/infographics/02_demo_flow.png) | デモの流れ。バグ発火から1件のインシデントに束ねるまでの4ステップ |
+| [03_prompt_design.png](docs/infographics/03_prompt_design.png) | AIエージェントへの指示の型。渡すべき6項目とプロンプト例 |
+| [04_auto_repair_outlook.png](docs/infographics/04_auto_repair_outlook.png) | 自動改修への展望。状態遷移・役割分担・ガードレール |
+
+画像の元データは `docs/infographics_src/` のHTMLです。修正して再生成できます。
+
+```bash
+cd docs/infographics_src
+./check-fit.sh     # 1376x768に収まっているか検査 (はみ出しはPNG上で黙って欠落するため)
+./render.sh        # ヘッドレスChromeで docs/infographics/*.png を再生成
+```
+
+## 資料化のノウハウ
+
+この資料を作る過程で踏んだ落とし穴と対処をまとめます。**同種の資料を別プロジェクトで
+作る場合にも、そのまま流用できる内容**です。
+
+### 方針: 追加依存を増やさない
+
+オンプレ環境はホワイトリストが `docker.io` と `npm` のみです。そのため
+**画像生成に専用ツール(ImageMagick、mermaid-cli等)を導入していません**。
+
+| 用途 | 使ったもの | 理由 |
+|---|---|---|
+| スライド | Marp形式のMarkdown | GitHub上でそのまま読める。変換は任意 |
+| PDF/HTML/PPTX | `npx @marp-team/marp-cli` | npm経由で取得可。恒久インストール不要 |
+| インフォグラフ | HTML + CSS → ヘッドレスChrome | **追加依存ゼロ**。Chromeは既にある |
+
+ヘッドレスChromeを画像レンダラとして使う利点は、**日本語フォントを追加インストール
+しなくても正しく描画される**点です(OS標準の游ゴシック/メイリオが使われる)。
+図形描画ツールを別途入れる必要もありません。
+
+### PDF化 (Marp → PDF)
+
+```bash
+cd docs
+export CHROME_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe"  # Windowsのみ
+npx --yes @marp-team/marp-cli <file>.md --pdf --allow-local-files --no-stdin -o <file>.pdf
+```
+
+**オプションを付けないと起きること:**
+
+| オプション | 付けないと | 対処の理由 |
+|---|---|---|
+| `--no-stdin` | **変換成功のログが出るのに、出力ファイルが更新されない** | marp-cliが標準入力を待ち続ける。`</dev/null` でも回避可 |
+| `--allow-local-files` | ローカル画像やCSSを参照している場合に読み込まれない | 警告が出るが、手元のMarkdownを変換する用途では想定内 |
+| `CHROME_PATH` (Windows) | Chromeが見つからず変換に失敗する | marp-cliがWindowsの標準パスを解決できない場合がある |
+
+`--no-stdin` の空振りは**エラーにならない**のが厄介です。`[INFO] xxx.md => xxx.pdf`
+とログが出るため成功に見えます。以下で必ず実際の更新を確認してください。
+
+```bash
+# ページ数・用紙サイズ・フォント埋め込みを検証する (PDFは圧縮されているため展開して読む)
+python - <<'PY'
+import re, zlib
+d = open('04_incident_detection_presentation.pdf','rb').read()
+pages, boxes, fonts = 0, set(), set()
+for m in re.finditer(rb'stream\r?\n', d):
+    s = m.end(); e = d.find(b'endstream', s)
+    if e < 0: continue
+    try: raw = zlib.decompress(d[s:e])
+    except Exception: continue
+    pages += len(re.findall(rb'/Type\s*/Page\b', raw))
+    boxes.update(b.decode() for b in re.findall(rb'/MediaBox\s*\[([^\]]+)\]', raw))
+    fonts.update(f.decode() for f in re.findall(rb'/BaseFont\s*/([A-Za-z0-9+\-,]+)', raw))
+print('pages:', pages, '/ MediaBox:', boxes)
+print('fonts:', sorted(fonts))
+PY
+```
+
+日本語フォント(`YuGothic` 等)が `fonts` に出れば、**変換した環境以外でも文字化けしません**。
+`ls -la` でのファイルサイズ比較も、更新有無の簡易チェックとして有効です。
+
+### Marpスライドで注意すること
+
+- **暗い背景のクラスには、配色を個別に指定する。**
+  `section.lead` のような暗背景クラスを作ると、`table` / `code` / `strong` は
+  既定の暗い文字色のままなので**背景に沈んで読めなくなります**。実際に最終ページの表が
+  判読不能になりました。暗背景クラスごとに以下を上書きしてください。
+
+  ```css
+  section.lead code   { background: rgba(255,255,255,.14); color: #cbe4f5; }
+  section.lead strong { color: #ffd6a5; }
+  section.lead td     { background: rgba(15,23,42,.35); color: #e2e8f0; }
+  ```
+
+- **枚数を数えるときは frontmatter の `---` を除く。**
+  `grep -c '^---$'` は frontmatter の開始・終了行も拾うため、実際の枚数と合いません
+  (この資料でも一度25枚と誤って報告しました)。コードブロック内の `---` も除外が必要です。
+
+- **PDFを目視確認する。** 変換が成功しても、レイアウト崩れやコントラスト不足は
+  ログには出ません。PNGに書き出すと1枚ずつ確認しやすくなります。
+
+  ```bash
+  npx --yes @marp-team/marp-cli <file>.md --images png --allow-local-files --no-stdin -o /tmp/check/s.png
+  ```
+
+### インフォグラフ (HTML → PNG)
+
+`docs/infographics_src/` の2つのスクリプトが要点です。
+
+| スクリプト | 役割 |
+|---|---|
+| `render.sh` | 1376×768のHTMLを`--force-device-scale-factor=2`で撮影し、2752×1536のPNGを出力 |
+| `check-fit.sh` | 固定サイズに収まっているかを数値で検査 |
+
+**なぜ `check-fit.sh` が必要か** — ヘッドレスChromeのスクリーンショットは指定サイズで
+切り取られるため、**はみ出した内容はPNG上で黙って欠落します**。エラーも警告も出ません。
+画像を1枚ずつ目視しない限り気づけないので、機械的に検査します。
+
+さらに、単純な `scrollHeight` 比較では不十分でした。
+
+> **flexの落とし穴**: `min-height: 0` を持つflex子要素の内側であふれた内容は、
+> 親を押し広げずに切り取られます。そのためルート要素の `scrollHeight` を見ると
+> 「収まっている」と**誤判定します**。実際に、フッタが欠けた画像を検査が通してしまいました。
+
+`check-fit.sh` は現在、以下の3点を検査します。
+
+1. ルート要素 (`.sheet`) の縦横のあふれ
+2. **全子孫要素の内部あふれ** (上記の落とし穴への対処)
+3. 本文がフッタ領域に食い込んでいないか
+
+```bash
+cd docs/infographics_src
+./check-fit.sh              # 全枚検査 (終了コード 1 = はみ出しあり)
+./check-fit.sh 00_overview  # 1枚だけ
+./render.sh                 # PNG再生成
+```
+
+**レイアウト調整のコツ**: はみ出した時は、**当てずっぽうに詰めずに測ってから直す**。
+今回、左列を何度も詰めたのに解消せず、実測したら原因は右列でした。列ごとの高さを
+出力する使い捨てスクリプトを書くほうが速いです。
+
+また `flex: 1` のスペーサで下端に寄せると、**列の途中に不自然な空白ができます**。
+余白が目立つ場合はスペーサで散らすのではなく、**下段に内容のある帯を足して埋める**方が
+情報量も増えて読みやすくなります。
+
 ## 変更していないもの
 
 このプロジェクトは `projects/log_collector/` 配下のいずれのファイルも変更していません

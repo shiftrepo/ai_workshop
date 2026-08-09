@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="_base.css">
+<style>
+  .body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 11px; padding-top: 12px; }
+  /* 内容量に合わせた高さにし、余った縦を下段の帯に回す */
+  .steps4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; flex: none; }
+  .step { display: flex; flex-direction: column; gap: 8px; }
+
+  .sh { display: flex; align-items: center; gap: 9px; }
+  .sh .no {
+    width: 30px; height: 30px; flex: none; border-radius: 7px;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb); color: #fff;
+    font-size: 17px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sh .tx .n { font-size: 16px; font-weight: 700; color: #0f172a; line-height: 1.2; }
+  .sh .tx .s { font-size: 11px; color: #64748b; margin-top: 1px; }
+
+  .card { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 12px 13px; }
+  .card .lb { font-size: 11.5px; font-weight: 700; color: #1e3a5f; letter-spacing: .3px; }
+  .card .bd { font-size: 12.5px; color: #334155; line-height: 1.5; }
+
+  .log { font-size: 10.5px; line-height: 1.6; padding: 8px 9px; }
+
+  .op {
+    background: #eff6ff; border: 1.5px solid #93c5fd; border-radius: 6px;
+    padding: 7px 10px; font-size: 12.5px; line-height: 1.45; color: #1e3a5f;
+  }
+  .op b { color: #1d4ed8; }
+
+  .tidchip {
+    background: #fef3c7; border: 1.5px solid #f59e0b; border-radius: 5px;
+    padding: 5px 9px; font-family: Consolas, monospace; font-size: 12px;
+    font-weight: 700; color: #92400e; text-align: center;
+  }
+
+  .cmd {
+    background: #0f172a; color: #4ade80; border-radius: 5px; padding: 7px 9px;
+    font-family: Consolas, monospace; font-size: 10.5px; line-height: 1.55;
+    white-space: pre-wrap; word-break: break-all;
+  }
+
+  .warn2 {
+    background: #fef2f2; border-left: 4px solid #b91c1c; border-radius: 4px;
+    padding: 7px 9px; font-size: 11.5px; line-height: 1.45; color: #7f1d1d;
+  }
+  .good2 {
+    background: #ecfdf5; border-left: 4px solid #047857; border-radius: 4px;
+    padding: 7px 9px; font-size: 11.5px; line-height: 1.45; color: #064e3b;
+  }
+  .info2 {
+    background: #f8fafc; border-left: 4px solid #64748b; border-radius: 4px;
+    padding: 7px 9px; font-size: 11.5px; line-height: 1.45; color: #334155;
+  }
+
+  .inc {
+    background: #fff; border: 2px solid #2563eb; border-radius: 7px;
+    padding: 9px 10px; font-size: 11px; line-height: 1.55;
+    font-family: Consolas, monospace; color: #0f172a;
+  }
+  .inc .k { color: #64748b; }
+  .inc .v { font-weight: 700; }
+  .inc .tid { color: #b45309; font-weight: 700; }
+  .inc hr { border: none; border-top: 1px dashed #cbd5e1; margin: 5px 0; }
+
+  /* 下段: 4段階と担い手の対応 */
+  .lower { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; justify-content: flex-end; }
+  .band { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: stretch; }
+  .band .bl {
+    background: linear-gradient(135deg, #0f172a, #1e3a5f); color: #fff;
+    border-radius: 8px; padding: 10px 13px; display: flex; flex-direction: column; justify-content: center;
+  }
+  .band .bl .t1 { font-size: 14px; font-weight: 700; }
+  .band .bl .t2 { font-size: 11px; color: #a9c3d6; margin-top: 3px; line-height: 1.4; }
+  .band .br { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .band .who {
+    background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(15,23,42,.10);
+    padding: 9px 12px; display: flex; flex-direction: column; gap: 3px;
+  }
+  .band .who .st { font-size: 12px; font-weight: 700; color: #1e3a5f; }
+  .band .who .ag { font-size: 11.5px; color: #334155; line-height: 1.4; }
+  .band .who .tg {
+    align-self: flex-start; font-size: 10.5px; font-weight: 700;
+    padding: 2px 8px; border-radius: 9px; margin-top: 1px;
+  }
+  .band .who .tg.ai { background: #dbeafe; color: #1d4ed8; }
+  .band .who .tg.hu { background: #fef3c7; color: #92400e; }
+
+  /* 下段: 経営視点での要点 */
+  .pts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; }
+  .pts .pt2 {
+    background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(15,23,42,.10);
+    padding: 9px 13px; border-top: 4px solid #2563eb;
+  }
+  .pts .pt2 .h2 { font-size: 12.5px; font-weight: 700; color: #0f172a; margin-bottom: 3px; }
+  .pts .pt2 .d2 { font-size: 11.5px; color: #475569; line-height: 1.45; }
+  .pts .pt2 b { color: #1d4ed8; }
+  .pts .pt2.amber { border-top-color: #b45309; }
+  .pts .pt2.amber b { color: #b45309; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="head">
+    <div class="t">デモの流れ</div>
+    <div class="s">バグ発火から、1件のインシデントに束ねるまで</div>
+    <div class="tag">所要 1〜2分</div>
+  </div>
+
+  <div class="body">
+
+   <div class="steps4">
+
+    <!-- ① バグを踏む -->
+    <div class="step">
+      <div class="sh">
+        <div class="no">1</div>
+        <div class="tx"><div class="n">バグを踏む</div><div class="s">演者がブラウザを操作する</div></div>
+      </div>
+      <div class="card">
+        <div class="op">
+          <b>操作</b>: 在庫切れ商品<br>「WalkyDog Mk2」の<br>詳細ページを開く<br>
+          <b>結果</b>: 画面に 500 エラー
+        </div>
+        <div class="lb">この瞬間、2つのログに同じ TrackID が書かれる</div>
+        <div class="log"><span class="dim">app.log</span>
+<span class="err">ERROR</span> <span class="tid">TrackID:ABC1234</span>
+ [/api/robots/RBT-DOG-02]
+ status=500
+
+<span class="dim">service.log</span>
+<span class="err">ERROR</span> <span class="tid">TrackID:ABC1234</span>
+ [/internal/inventory/
+  RBT-DOG-02] status=500</div>
+        <div class="info2">
+          レスポンスにも <span style="font-family:Consolas,monospace">track_id</span> が
+          含まれるため、演者は画面から追跡を始められる。
+        </div>
+      </div>
+    </div>
+
+    <!-- ② 検知して TrackID を取り出す -->
+    <div class="step">
+      <div class="sh">
+        <div class="no">2</div>
+        <div class="tx"><div class="n">検知する</div><div class="s">ツールが異常に気づく</div></div>
+      </div>
+      <div class="card">
+        <div class="bd">
+          AI エージェントに作らせたツールが
+          <span style="font-family:Consolas,monospace">app.log</span> を監視し、
+          <b>ERROR</b> 行を見つける。
+        </div>
+        <div class="lb">正規表現で相関キーを抽出</div>
+        <div class="tidchip">TrackID:([A-Z0-9]{7})<br>↓<br>ABC1234</div>
+        <div class="good2">
+          ここまでは簡単 —
+          <span style="font-family:Consolas,monospace">app.log</span> は
+          ホストのローカルファイル。読むだけなら誰でもできる。
+        </div>
+        <div class="warn2">
+          <b>だが情報が足りない。</b><br>
+          アプリ層のログは「500 だった」しか語らない。原因は下流の機能サーバにある。<br>
+          <b>ここで止まるツールが実務でいちばん多い。</b>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ 別サーバから収集 -->
+    <div class="step">
+      <div class="sh">
+        <div class="no">3</div>
+        <div class="tx"><div class="n">収集する</div><div class="s">別サーバへ SSH で取りに行く</div></div>
+      </div>
+      <div class="card">
+        <div class="bd">
+          抽出した TrackID をキーに、機能サーバのログを検索する。
+        </div>
+        <div class="cmd">ssh -i training_key \
+  -p 5101 trainee@localhost \
+  "grep TrackID:ABC1234 \
+   /app/logs/service.log"</div>
+        <div class="good2">
+          <b>受講者はこのコマンドを覚えない。</b><br>
+          接続先・ポート・鍵・ログの場所は
+          <span style="font-family:Consolas,monospace">AGENT_SSH_GUIDE.md</span>
+          に集約してあり、<b>そのファイルを AI エージェントに読ませるだけ</b>で
+          エージェント側が接続を組み立てる。
+        </div>
+        <div class="info2">
+          <b>運用上の意味</b> —「SSH が分かる人しか調査できない」という
+          <b>属人化の解消</b>。知識はドキュメントに置き、実行はエージェントに任せる。
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ 1件に束ねる -->
+    <div class="step">
+      <div class="sh">
+        <div class="no">4</div>
+        <div class="tx"><div class="n">1件に束ねる</div><div class="s">人が読める記録にする</div></div>
+      </div>
+      <div class="card">
+        <div class="inc">
+          <span class="k">── INCIDENT ──────────</span><br>
+          <span class="k">TrackID :</span> <span class="tid">ABC1234</span><br>
+          <span class="k">発生時刻:</span> 09:00:00.089Z<br>
+          <span class="k">概要　　:</span> <span class="v">在庫切れ商品の詳細取得で TypeError</span><br>
+          <hr>
+          <span class="k">関連ログ:</span><br>
+          <span class="k">[app.log&nbsp;&nbsp;&nbsp;&nbsp; .123]</span><br>
+          &nbsp;&nbsp;ERROR /api/robots/... 500<br>
+          <span class="k">[service.log .089]</span><br>
+          &nbsp;&nbsp;ERROR /internal/... 500<br>
+          <span class="k">─────────────────────</span>
+        </div>
+        <div class="good2">
+          <b>時系列に注目</b> — 機能層の <b>.089</b> がアプリ層の <b>.123</b> より<b>先</b>。
+          TrackID で束ねた瞬間に「どちらが原因側か」が読める。<br>
+          時刻の目視では出てこない情報。
+        </div>
+        <div class="info2">
+          この記録が、次の工程 (AI による一次解析 → 改修案 → PR 発行) の入力になる。
+        </div>
+      </div>
+    </div>
+
+   </div>
+
+   <div class="lower">
+
+   <!-- 下段: このデモから読み取ってほしいこと -->
+   <div class="pts">
+     <div class="pt2">
+       <div class="h2">突き合わせが「推測」から「検索」に変わった</div>
+       <div class="d2">
+         時刻の近さで判断するのをやめ、<b>TrackID の完全一致</b>で束ねる。
+         人の勘に依存しないので、そのまま自動化できる。
+       </div>
+     </div>
+     <div class="pt2">
+       <div class="h2">調査の入口が属人化から外れた</div>
+       <div class="d2">
+         接続情報はドキュメントに集約済み。
+         <b>SSH を知らない担当者でも</b>同じ手順を回せる。
+       </div>
+     </div>
+     <div class="pt2 amber">
+       <div class="h2">人の仕事が「探す」から「決める」へ</div>
+       <div class="d2">
+         ①〜③は機械が担い、人は<b>④の判断だけ</b>を受け持つ。
+         削るのは工数ではなく、判断までの待ち時間。
+       </div>
+     </div>
+   </div>
+
+   <!-- 下段: 誰が担うか -->
+   <div class="band">
+     <div class="bl">
+       <div class="t1">誰が担うか</div>
+       <div class="t2">受講者が組み立てるのは<br>①〜④ のツール本体</div>
+     </div>
+     <div class="br">
+       <div class="who">
+         <div class="st">① 検知</div>
+         <div class="ag">app.log の ERROR 行を見つける</div>
+         <div class="tg ai">ツールが自動</div>
+       </div>
+       <div class="who">
+         <div class="st">② 収集</div>
+         <div class="ag">SSH で service.log を TrackID 検索</div>
+         <div class="tg ai">AI エージェント</div>
+       </div>
+       <div class="who">
+         <div class="st">③ 関連付け</div>
+         <div class="ag">TrackID をキーに1件へ集約</div>
+         <div class="tg ai">ツールが自動</div>
+       </div>
+       <div class="who">
+         <div class="st">④ 出力 → 判断</div>
+         <div class="ag">記録を読み、対応方針を決める</div>
+         <div class="tg hu">人が担う</div>
+       </div>
+     </div>
+   </div>
+
+   </div>
+
+  </div>
+
+  <div class="foot">
+    <div>検知 → 収集 → 関連付け → 出力 の4段階のうち、①②を先に動かし、通ってから③④を足す</div>
+    <div class="p">docs/04_incident_detection_presentation.md</div>
+  </div>
+
+</div>
+</body>
+</html>

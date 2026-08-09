@@ -1,0 +1,80 @@
+/* onprem_log_training インフォグラフ共通スタイル
+ * 出力サイズ 2752x1536 (既存 docs/*.png と同一)。
+ * 1376x768 のCSSピクセルで組み、Chrome の --force-device-scale-factor=2 で2倍に出力する。 */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1376px;
+  height: 768px;
+  font-family: "Yu Gothic", "Meiryo", "Hiragino Kaku Gothic ProN", sans-serif;
+  background: #f1f5f9;
+  color: #0f172a;
+  overflow: hidden;
+}
+
+.sheet {
+  width: 1376px;
+  height: 768px;
+  padding: 22px 30px 24px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, #f8fafc 0%, #eef2f7 100%);
+}
+
+/* ---- ヘッダ ---- */
+.head { display: flex; align-items: flex-end; gap: 16px; border-bottom: 3px solid #2563eb; padding-bottom: 9px; }
+.head .t { font-size: 30px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; }
+.head .s { font-size: 15px; color: #475569; padding-bottom: 3px; }
+.head .tag {
+  margin-left: auto; font-size: 12px; color: #fff; background: #1e3a5f;
+  padding: 4px 12px; border-radius: 11px; letter-spacing: 0.4px; white-space: nowrap;
+}
+
+/* ---- 汎用カード ---- */
+.card { background: #fff; border-radius: 9px; box-shadow: 0 1px 4px rgba(15,23,42,.10); padding: 13px 16px; }
+.card > .ct {
+  font-size: 15px; font-weight: 700; color: #1e3a5f;
+  border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 8px;
+}
+
+/* ---- サーバ役の箱 ---- */
+.tier { border-radius: 9px; padding: 12px 15px; color: #fff; }
+.tier .n { font-size: 19px; font-weight: 700; }
+.tier .r { font-size: 12.5px; opacity: .85; margin-top: 1px; }
+.tier .d { font-size: 13px; margin-top: 7px; line-height: 1.5; }
+.tier.client { background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%); }
+.tier.server { background: linear-gradient(135deg, #7c2d92 0%, #a21caf 100%); }
+
+/* ---- ログ表示 ---- */
+.log {
+  font-family: Consolas, "Courier New", monospace;
+  background: #0f172a; color: #e2e8f0;
+  border-radius: 7px; padding: 10px 12px;
+  font-size: 11.5px; line-height: 1.65; white-space: pre; overflow: hidden;
+}
+.log .tid { color: #fbbf24; font-weight: 700; }
+.log .err { color: #fb7185; }
+.log .ok  { color: #4ade80; }
+.log .dim { color: #7f8ea3; }
+
+/* ---- 強調 ---- */
+.key { color: #b45309; font-weight: 700; }
+.bad { color: #b91c1c; font-weight: 700; }
+.good { color: #047857; font-weight: 700; }
+
+/* ---- 矢印 ---- */
+.arrow { color: #2563eb; font-weight: 700; text-align: center; }
+
+/* ---- フッタ ---- */
+.foot {
+  margin-top: auto; padding-top: 9px; border-top: 1px solid #cbd5e1;
+  font-size: 12px; color: #64748b; display: flex; gap: 18px;
+}
+.foot .p { margin-left: auto; font-family: Consolas, monospace; }
+
+/* ---- テーブル ---- */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #1e3a5f; color: #fff; padding: 6px 9px; text-align: left; font-weight: 600; }
+td { padding: 6px 9px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+tr:nth-child(even) td { background: #f8fafc; }
