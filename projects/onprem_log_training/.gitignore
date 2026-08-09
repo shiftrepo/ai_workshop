@@ -12,4 +12,7 @@ package-lock.json
 !*/src/lib/
 !*/src/lib/*.js
 
+# issue-to-pdf.sh の中間ファイル (KEEP_WORK=1 のときだけ残る)
+docs/.issue_pdf_work/
+
 # 学習用のSSH鍵は意図的に平文コミットする(セキュリティ考慮不要な前提のため .gitignore しない)
