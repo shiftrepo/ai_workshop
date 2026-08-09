@@ -137,6 +137,7 @@ cp .env.example .env
 |---|---|
 | [docs/04_incident_detection_presentation.md](docs/04_incident_detection_presentation.md) | 意思決定層向けのスライド原稿 (全24枚)。課題→TrackID相関→デモの流れ→導入ステップ→自動改修への展望 |
 | [docs/04_incident_detection_presentation.pdf](docs/04_incident_detection_presentation.pdf) | 上記をスライド化したPDF (960×540 / 16:9)。配布・投影用 |
+| [docs/issue-45.pdf](docs/issue-45.pdf) | Issue #45 (依頼内容と成果物の報告コメント) をPDF化したもの。経緯の記録用 |
 
 PDFは生成済みのものをコミットしていますが、Markdownを修正した場合は以下で再生成できます。
 
@@ -155,6 +156,26 @@ npx --yes @marp-team/marp-cli 04_incident_detection_presentation.md --pptx --no-
 
 各オプションの意味と、付けないと何が起きるかは
 [資料化のノウハウ](#資料化のノウハウ)にまとめています。
+
+### GitHub Issue のPDF化
+
+Issue の本文と全コメントを1つのPDFにまとめます。GitHubにアクセスできない場所へ
+経緯を持ち出したり、会議資料として配布するために使います。
+
+```bash
+cd docs
+./issue-to-pdf.sh 45                      # issue-45.pdf を出力
+./issue-to-pdf.sh 45 out.pdf              # 出力先を指定
+REPO=owner/name ./issue-to-pdf.sh 45      # 別リポジトリを対象にする
+KEEP_WORK=1 ./issue-to-pdf.sh 45          # 中間ファイル(md/html)を残す (崩れの調査用)
+```
+
+こちらも**追加の依存パッケージを入れていません** — `gh` でIssueを取得し、
+`npx marked` でHTMLに変換し、ヘッドレスChromeの `--print-to-pdf` で印刷しています。
+
+コメント中の画像 (`raw.githubusercontent.com` のURL) は、**このリポジトリ内の
+ファイルを指すものだけローカルパスへ書き換えて**埋め込みます。ネットワークや
+コミットの存在に依存せず、常に手元の内容でPDFを作るためです。
 
 ### インフォグラフ
 
@@ -192,6 +213,7 @@ cd docs/infographics_src
 | スライド | Marp形式のMarkdown | GitHub上でそのまま読める。変換は任意 |
 | PDF/HTML/PPTX | `npx @marp-team/marp-cli` | npm経由で取得可。恒久インストール不要 |
 | インフォグラフ | HTML + CSS → ヘッドレスChrome | **追加依存ゼロ**。Chromeは既にある |
+| Issue のPDF化 | `gh` + `npx marked` → ヘッドレスChrome | 同上。`--print-to-pdf` で印刷する |
 
 ヘッドレスChromeを画像レンダラとして使う利点は、**日本語フォントを追加インストール
 しなくても正しく描画される**点です(OS標準の游ゴシック/メイリオが使われる)。
@@ -261,6 +283,33 @@ PY
   ```bash
   npx --yes @marp-team/marp-cli <file>.md --images png --allow-local-files --no-stdin -o /tmp/check/s.png
   ```
+
+### Markdown → PDF (Marp以外、`issue-to-pdf.sh` の場合)
+
+スライドではない通常のドキュメントは、`marked` でHTML化してヘッドレスChromeの
+`--print-to-pdf` に流します。ここで踏んだ点:
+
+- **`marked` は生HTMLブロックの中の Markdown を解釈しない。**
+  `<div>` で囲んだ中にパイプ記法のテーブルを書くと、**パイプ文字がそのまま
+  出力されます**。生HTMLで囲む必要がある部分は、テーブルも生HTMLで書きます。
+- **見出しは1段下げる。** Issueやコメントの本文は単体で書かれているため `h1`/`h2`
+  から始まることが多く、そのままだと文書側の枠組みと同じ高さになって階層が
+  読めません。下げる際は**コードブロック内の `#` を除外**します。
+- **PDF向けCSSを当てる。** `@page` で用紙とマージンを指定し、`pre` は
+  `white-space: pre-wrap`(PDFは横スクロールできない)、`img` と `pre` は
+  `page-break-inside: avoid`、見出しは `page-break-after: avoid` にします。
+- **`--no-pdf-header-footer`** を付けないと、URLと日付の自動ヘッダが入ります。
+- **画像の読み込みを待つ。** `--virtual-time-budget` を指定しないと、画像が
+  未読込のまま印刷されることがあります。
+
+**レンダリング結果の確認方法**: PDFを直接画像化できない環境でも、同じHTMLを
+`--screenshot` で撮れば見た目を確認できます。文書が長い場合は
+`body { position: relative; top: -3250px }` を注入して下部だけを撮るのが手軽です。
+
+```bash
+# 描画後の全体の高さを測る (どこまで撮ればよいかを知る)
+# → document.documentElement.scrollHeight を document.title に載せて --dump-dom で読む
+```
 
 ### インフォグラフ (HTML → PNG)
 
