@@ -135,13 +135,26 @@ cp .env.example .env
 
 | 資料 | 内容 |
 |---|---|
-| [docs/04_incident_detection_presentation.md](docs/04_incident_detection_presentation.md) | 意思決定層向けのスライド原稿。課題→TrackID相関→デモの流れ→導入ステップ→自動改修への展望 |
+| [docs/04_incident_detection_presentation.md](docs/04_incident_detection_presentation.md) | 意思決定層向けのスライド原稿 (全24枚)。課題→TrackID相関→デモの流れ→導入ステップ→自動改修への展望 |
+| [docs/04_incident_detection_presentation.pdf](docs/04_incident_detection_presentation.pdf) | 上記をスライド化したPDF (960×540 / 16:9)。配布・投影用 |
+
+PDFは生成済みのものをコミットしていますが、Markdownを修正した場合は以下で再生成できます。
 
 ```bash
-# スライドに変換する場合 (marp-cli が使える環境で)
-npx @marp-team/marp-cli docs/04_incident_detection_presentation.md -o slides.html
-npx @marp-team/marp-cli docs/04_incident_detection_presentation.md --pdf
+cd docs
+# WindowsでChromeのパスを明示する場合 (Linux/macOSでは通常不要)
+export CHROME_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe"
+
+npx --yes @marp-team/marp-cli 04_incident_detection_presentation.md \
+  --pdf --allow-local-files -o 04_incident_detection_presentation.pdf
+
+# HTML / PPTX が必要な場合
+npx --yes @marp-team/marp-cli 04_incident_detection_presentation.md -o slides.html
+npx --yes @marp-team/marp-cli 04_incident_detection_presentation.md --pptx -o slides.pptx
 ```
+
+> `--allow-local-files` はローカルファイル参照を許可するオプションです。marp-cliが警告を出しますが、
+> 手元のMarkdownを変換する用途では想定内の動作です。
 
 ### インフォグラフ
 

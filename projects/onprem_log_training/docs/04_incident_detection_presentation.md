@@ -18,6 +18,12 @@ style: |
   section.lead h1 { color: #fff; border: none; font-size: 54px; }
   section.lead h2 { color: #8ecae6; border: none; font-size: 32px; font-weight: normal; }
   section.lead p  { color: #cbd5e1; }
+  /* 暗い背景では既定の文字色・コード背景が沈むため、lead 用に上書きする */
+  section.lead code { background: rgba(255,255,255,.14); color: #cbe4f5; }
+  section.lead strong { color: #ffd6a5; }
+  section.lead table { color: #e2e8f0; }
+  section.lead td { background: rgba(15,23,42,.35); border-color: #3f5875; color: #e2e8f0; }
+  section.lead tr:nth-child(even) td { background: rgba(15,23,42,.5); }
   h1 { font-size: 40px; color: #0f172a; border-bottom: 4px solid #2563eb; padding-bottom: 10px; }
   h2 { font-size: 32px; color: #1e3a5f; }
   h3 { font-size: 26px; color: #2563eb; }
